@@ -91,7 +91,7 @@ test('Create type function from one validator function returns anything else tha
 
 	t.is(typeof UnvalidType, 'function');
 	t.is(UnvalidType.name, 'Type');
-	
+
 	const unvalidTypeError = t.throws(() => {
 		UnvalidType(true);
 	});
@@ -185,7 +185,6 @@ test.todo('built-in type WeakSet');
 test.todo('built-in type WeakMap');
 test.todo('built-in type Error');
 test.todo('built-in type Maybe');
-
 
 test.todo('Trying to create named type using proxy method without pascalCase');
 test.todo('Trying to create type without parameters should throw an error');
