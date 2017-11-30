@@ -121,8 +121,8 @@ test('Create type function from one validator function throwing an error', t => 
 	t.true(unvalidTypeError instanceof TypeError);
 	t.is(unvalidTypeError.message, msg(
 		`Value {"valueKey3":"value value 3"} is not of a valid type.`,
-		`It doesn't match the validator ${validator}.`
-	)+`\n\tvalidator error`);
+		`It doesn't match the validator ${validator}.\n\tvalidator error`
+	));
 });
 
 test.todo('Create type function from one validator function throwing an error and returning a no boolean value');
@@ -133,7 +133,29 @@ test.todo('Create named type using string and many validators');
 test.todo('Create named type using proxy method with pascalCase and one validator');
 test.todo('Create named type using proxy method with pascalCase and many validators');
 
+test.todo('Create validator from type using type.validator function');
+test.todo('Create validator from type using type.is function');
+test.todo('built-in type.not function');
+test.todo('built-in type.not modifier');
 test.todo('built-in type.strict modifier');
+
+test.todo('built-in helper ofType');
+test.todo('built-in helper kindOf');
+test.todo('built-in helper instanceOf');
+test.todo('built-in helper equal');
+test.todo('built-in helper strictEqual');
+test.todo('built-in helper deepEqual');
+test.todo('built-in helper deepStrictEqual');
+test.todo('built-in helper is');
+test.todo('built-in helper deepIs');
+test.todo('built-in helper identity');
+test.todo('built-in helper deepIdentity');
+test.todo('built-in helper enum');
+test.todo('built-in helper interface');
+test.todo('built-in helper arrayOf');
+test.todo('built-in helper tuple');
+test.todo('built-in helper error');
+test.todo('built-in helper maybe');
 
 test.todo('built-in type Type');
 test.todo('built-in type Any');
@@ -150,33 +172,22 @@ test.todo('built-in type EmptyString');
 test.todo('built-in type BlankString');
 test.todo('built-in type TypeNumber');
 test.todo('built-in type NaN');
-test.todo('built-in type Infinity');
-test.todo('built-in type PositiveInfinity');
-test.todo('built-in type NegativeInfinity');
 test.todo('built-in type Number');
+test.todo('built-in type Integer');
+test.todo('built-in type Float');
 test.todo('built-in type Zero');
 test.todo('built-in type PositiveNumber');
 test.todo('built-in type NegativeNumber');
+test.todo('built-in type Infinity');
+test.todo('built-in type PositiveInfinity');
+test.todo('built-in type NegativeInfinity');
 test.todo('built-in type Function');
 test.todo('built-in type Symbol');
 test.todo('built-in type TypeObject');
 test.todo('built-in type Object');
-test.todo('built-in type InstanceOf');
-test.todo('built-in type Equal');
-test.todo('built-in type DeepEqual');
-test.todo('built-in type Is');
-test.todo('built-in type DeepIs');
-test.todo('built-in type Identity');
-test.todo('built-in type DeepIdentity');
-test.todo('built-in type Enum');
-test.todo('built-in type Struct');
-test.todo('built-in type Interface');
-test.todo('built-in type should work with any contructor...');
 test.todo('built-in type Array');
 test.todo('built-in type EmptyArray');
 test.todo('built-in type BlankArray');
-test.todo('built-in type ArrayOf');
-test.todo('built-in type Tuple');
 test.todo('built-in type RegExp');
 test.todo('built-in type Promise');
 test.todo('built-in type Set');
@@ -184,7 +195,12 @@ test.todo('built-in type Map');
 test.todo('built-in type WeakSet');
 test.todo('built-in type WeakMap');
 test.todo('built-in type Error');
-test.todo('built-in type Maybe');
+test.todo('built-in type TypeError');
+
+test.todo('built-in type should work with any error type');
+test.todo('built-in type should work with any contructor...');
+
+test.todo('built-in type Not variants');
 
 test.todo('Trying to create named type using proxy method without pascalCase');
 test.todo('Trying to create type without parameters should throw an error');
