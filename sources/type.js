@@ -1,9 +1,20 @@
 'use strict';
 
 const msg = require('@alexistessier/msg');
+const stringable = require('stringable');
+
+function validatorFormatter(data) {
+	const {
+		type,
+		stringifiedValue,
+		defaultFormatter
+	} = data;
+	const functionBody = type === 'function' ? `[${stringifiedValue}]` : '';
+	return `${defaultFormatter(data)}${functionBody}`;
+}
 
 function type(validator){
-	const loggableValidator = validator.toString();
+	const loggableValidator = stringable(validator, validatorFormatter);
 
 	return function Type(value){
 		let valid = true;
@@ -18,7 +29,7 @@ function type(validator){
 		}
 
 		if (typeof valid !== 'boolean') {
-			const loggableValidValue = `(${typeof valid} => ${valid})`;
+			const loggableValidValue = stringable(valid);
 
 			throw new TypeError(msg(
 				`Unvalid type validator.`,
@@ -28,8 +39,9 @@ function type(validator){
 			));
 		}
 		if(!valid){
+			const loggableValue = stringable(value);
 			let typeErrorMessage = msg(
-				`Value ${JSON.stringify(value)} is not of a valid type.`,
+				`Value ${loggableValue} is not of a valid type.`,
 				`It doesn't match the validator ${loggableValidator}.`
 			);
 

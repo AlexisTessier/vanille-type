@@ -4,6 +4,7 @@ const test = require('ava');
 const sinon = require('sinon');
 
 const msg = require('@alexistessier/msg');
+const stringable = require('stringable');
 
 const requireFromIndex = require('../utils/require-from-index');
 
@@ -53,8 +54,8 @@ test('Create type function from one validator function returns false', t => {
 
 	t.true(unvalidTypeError instanceof TypeError);
 	t.is(unvalidTypeError.message, msg(
-		`Value {"valueKey2":"value value 2"} is not of a valid type.`,
-		`It doesn't match the validator spy.`
+		`Value (object => { valueKey2: (string => 'value value 2') }) is not of a valid type.`,
+		`It doesn't match the validator (function => proxy)[spy].`
 	));
 
 	t.true(validator.calledOnce);
@@ -70,7 +71,7 @@ test('Create type function from one validator function returns false - without s
 	t.is(typeof Nothing, 'function');
 	t.is(Nothing.name, 'Type');
 
-	const value = {valueKey3:'value value 3'};
+	const value = {valueKey3:'value value 3', multiKey: 42};
 
 	const unvalidTypeError = t.throws(() => {
 		Nothing(value);
@@ -78,15 +79,15 @@ test('Create type function from one validator function returns false - without s
 
 	t.true(unvalidTypeError instanceof TypeError);
 	t.is(unvalidTypeError.message, msg(
-		`Value {"valueKey3":"value value 3"} is not of a valid type.`,
-		`It doesn't match the validator v => false.`
+		`Value (object => {\n  valueKey3: (string => 'value value 3'),\n  multiKey: (number: integer => 42)\n}) is not of a valid type.`,
+		`It doesn't match the validator (function => validator)[v => false].`
 	));
 });
 
-test('Create type function from one validator function returns anything else than a boolean', t => {
+function validatorReturningNotABooleanMacro(t, notBoolean) {
 	const type = requireFromIndex('sources/type');
 
-	const validator = v => 'truthy value';
+	const validator = v => notBoolean;
 	const UnvalidType = type(validator);
 
 	t.is(typeof UnvalidType, 'function');
@@ -98,10 +99,38 @@ test('Create type function from one validator function returns anything else tha
 
 	t.true(unvalidTypeError instanceof TypeError);
 	t.is(unvalidTypeError.message, msg(
-		`Unvalid type validator. The validator v => 'truthy value'`,
-		`doesn't return a boolean value. It returns (string => truthy value).`
+		`Unvalid type validator. The validator (function => validator)[v => notBoolean]`,
+		`doesn't return a boolean value. It returns ${stringable(notBoolean)}.`
 	));
-});
+}
+
+validatorReturningNotABooleanMacro.title = (providedTitle, notBoolean) => (
+	`Create type function from one validator function returns anything else than a boolean - (${typeof notBoolean}) - ${providedTitle}`
+)
+
+test(validatorReturningNotABooleanMacro, 'truthy value');
+test('truthy number', validatorReturningNotABooleanMacro, 1);
+test('falsy number', validatorReturningNotABooleanMacro, 1);
+test(validatorReturningNotABooleanMacro, 42);
+test('float', validatorReturningNotABooleanMacro, 32.8);
+test('empty array', validatorReturningNotABooleanMacro, []);
+test(validatorReturningNotABooleanMacro, ['vale', 5]);
+test(validatorReturningNotABooleanMacro, v => v);
+test(validatorReturningNotABooleanMacro, {key: 'val'});
+test('empty object', validatorReturningNotABooleanMacro, {});
+test(validatorReturningNotABooleanMacro, /reg/);
+test(validatorReturningNotABooleanMacro, Symbol());
+test(validatorReturningNotABooleanMacro, null);
+test(validatorReturningNotABooleanMacro, undefined);
+test(validatorReturningNotABooleanMacro);
+test(validatorReturningNotABooleanMacro, Symbol());
+test(validatorReturningNotABooleanMacro, new Boolean(true));
+test(validatorReturningNotABooleanMacro, new Boolean(false));
+test(validatorReturningNotABooleanMacro, new Boolean());
+test(validatorReturningNotABooleanMacro, Symbol());
+test(validatorReturningNotABooleanMacro, new Error());
+test(validatorReturningNotABooleanMacro, new Error('test'));
+test(validatorReturningNotABooleanMacro, new TypeError('test type error'));
 
 test('Create type function from one validator function throwing an error', t => {
 	const type = requireFromIndex('sources/type');
@@ -120,12 +149,35 @@ test('Create type function from one validator function throwing an error', t => 
 
 	t.true(unvalidTypeError instanceof TypeError);
 	t.is(unvalidTypeError.message, msg(
-		`Value {"valueKey3":"value value 3"} is not of a valid type.`,
-		`It doesn't match the validator ${validator}.\n\tvalidator error`
+		`Value (object => { valueKey3: (string => 'value value 3') }) is not of a valid type.`,
+		`It doesn't match the validator (function => validator)[${validator}].\n\tvalidator error`
 	));
 });
 
-test.todo('Create type function from one validator function throwing an error and returning a no boolean value');
+test('Create type function from one validator function throwing an error and returning a no boolean value', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator = v => {
+		throw new Error('first validator error');
+		return 'test'
+	}
+	const Errored = type(validator);
+
+	t.is(typeof Errored, 'function');
+	t.is(Errored.name, 'Type');
+
+	const value = 'whatever';
+
+	const ErroredTypeError = t.throws(() => {
+		Errored(value);
+	});
+
+	t.true(ErroredTypeError instanceof TypeError);
+	t.is(ErroredTypeError.message, msg(
+		`Value ${stringable(value)} is not of a valid type.`,
+		`It doesn't match the validator (function => validator)[${validator}].\n\tfirst validator error`
+	));
+});
 
 test.todo('Create type from many validators');
 test.todo('Create named type using string and one validator');
