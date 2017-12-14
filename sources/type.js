@@ -13,44 +13,47 @@ function validatorFormatter(data) {
 	return `${defaultFormatter(data)}${functionBody}`;
 }
 
-function type(validator){
-	const loggableValidator = stringable(validator, validatorFormatter);
-
+function type(...validators){
 	return function Type(value){
-		let valid = true;
-		let validatorErrorMessage = null;
+		validators.forEach(validator => {
+			const loggableValidator = stringable(validator, validatorFormatter);
 
-		try{
-			valid = validator(value);
-		}
-		catch(err){
-			valid = false;
-			validatorErrorMessage = err.message;
-		}
+			let valid = true;
+			let validatorErrorMessage = null;
 
-		if (typeof valid !== 'boolean') {
-			const loggableValidValue = stringable(valid);
-
-			throw new TypeError(msg(
-				`Unvalid type validator.`,
-				`The validator ${loggableValidator}`,
-				`doesn't return a boolean value.`,
-				`It returns ${loggableValidValue}.`
-			));
-		}
-		if(!valid){
-			const loggableValue = stringable(value);
-			let typeErrorMessage = msg(
-				`Value ${loggableValue} is not of a valid type.`,
-				`It doesn't match the validator ${loggableValidator}.`
-			);
-
-			if (validatorErrorMessage) {
-				typeErrorMessage += `\n\t${validatorErrorMessage}`;
+			try{
+				valid = validator(value);
+			}
+			catch(err){
+				valid = false;
+				validatorErrorMessage = err.message;
 			}
 
-			throw new TypeError(typeErrorMessage)
-		}
+			if (typeof valid !== 'boolean') {
+				const loggableValidValue = stringable(valid);
+
+				throw new TypeError(msg(
+					`Unvalid type validator.`,
+					`The validator ${loggableValidator}`,
+					`doesn't return a boolean value.`,
+					`It returns ${loggableValidValue}.`
+				));
+			}
+			if(!valid){
+				const loggableValue = stringable(value);
+				let typeErrorMessage = msg(
+					`Value ${loggableValue} is not of a valid type.`,
+					`It doesn't match the validator ${loggableValidator}.`
+				);
+
+				if (validatorErrorMessage) {
+					typeErrorMessage += `\n\t${validatorErrorMessage}`;
+				}
+
+				throw new TypeError(typeErrorMessage)
+			}
+		});
+
 		return value;
 	}
 }
