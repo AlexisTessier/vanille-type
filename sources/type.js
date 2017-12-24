@@ -1,7 +1,11 @@
 'use strict';
 
-const msg = require('@alexistessier/msg');
 const stringable = require('stringable');
+
+const {
+	unvalidTypeValidator: UNV_TYP_VAL,
+	typeError: TYP_ERR
+} = require('./settings/logs')
 
 function validatorFormatter(data) {
 	const {
@@ -30,27 +34,14 @@ function type(...validators){
 			}
 
 			if (typeof valid !== 'boolean') {
-				const loggableValidValue = stringable(valid);
-
-				throw new TypeError(msg(
-					`Unvalid type validator.`,
-					`The validator ${loggableValidator}`,
-					`doesn't return a boolean value.`,
-					`It returns ${loggableValidValue}.`
-				));
+				throw new TypeError(UNV_TYP_VAL({validator: loggableValidator, returnedValue: stringable(valid)}));
 			}
 			if(!valid){
-				const loggableValue = stringable(value);
-				let typeErrorMessage = msg(
-					`Value ${loggableValue} is not of a valid type.`,
-					`It doesn't match the validator ${loggableValidator}.`
-				);
-
-				if (validatorErrorMessage) {
-					typeErrorMessage += `\n\t${validatorErrorMessage}`;
-				}
-
-				throw new TypeError(typeErrorMessage)
+				throw new TypeError(TYP_ERR({
+					value: stringable(value),
+					validator: loggableValidator,
+					validatorErrorMessage
+				}))
 			}
 		});
 
