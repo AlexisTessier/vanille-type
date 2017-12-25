@@ -248,8 +248,100 @@ test.only('Create type from many validators - lot of validators - false at first
 	t.true(validator5.calledAfter(validator4));
 });
 
-test.todo('Create type from many validators - lot of validators - false in middle');
-test.todo('Create type from many validators - lot of validators - false at last');
+test.only('Create type from many validators - lot of validators - false in middle', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = sinon.spy(v => true);
+	const validator2 = sinon.spy(v => false);
+	const validator3 = sinon.spy(v => false);
+	const validator4 = sinon.spy(v => false);
+	const validator5 = sinon.spy(v => true);
+	const Nothing5 = type(validator1, validator2, validator3, validator4, validator5);
+
+	t.true(validator1.notCalled);
+	t.true(validator2.notCalled);
+	t.true(validator3.notCalled);
+	t.true(validator4.notCalled);
+	t.true(validator5.notCalled);
+	t.is(typeof Nothing5, 'function');
+	t.is(Nothing5.name, 'Type');
+
+	const value = {valueKey:'value value'};
+
+	const unvalidTypeError = t.throws(() => {
+		const typedValue = Nothing5(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator2}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator3}),
+		`\n\t2) `, logs.typeErrorDetail({validator: validator4})
+	].join(''));
+
+	t.true(validator1.calledOnce);
+	t.true(validator1.withArgs(value).calledOnce);
+	t.true(validator2.calledOnce);
+	t.true(validator2.withArgs(value).calledOnce);
+	t.true(validator2.calledAfter(validator1));
+	t.true(validator3.calledOnce);
+	t.true(validator3.withArgs(value).calledOnce);
+	t.true(validator3.calledAfter(validator2));
+	t.true(validator4.calledOnce);
+	t.true(validator4.withArgs(value).calledOnce);
+	t.true(validator4.calledAfter(validator3));
+	t.true(validator5.calledOnce);
+	t.true(validator5.withArgs(value).calledOnce);
+	t.true(validator5.calledAfter(validator4));
+});
+
+test.only('Create type from many validators - lot of validators - false at last', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = sinon.spy(v => true);
+	const validator2 = sinon.spy(v => true);
+	const validator3 = sinon.spy(v => true);
+	const validator4 = sinon.spy(v => false);
+	const validator5 = sinon.spy(v => false);
+	const Nothing5 = type(validator1, validator2, validator3, validator4, validator5);
+
+	t.true(validator1.notCalled);
+	t.true(validator2.notCalled);
+	t.true(validator3.notCalled);
+	t.true(validator4.notCalled);
+	t.true(validator5.notCalled);
+	t.is(typeof Nothing5, 'function');
+	t.is(Nothing5.name, 'Type');
+
+	const value = {valueKey:'value value'};
+
+	const unvalidTypeError = t.throws(() => {
+		const typedValue = Nothing5(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator4}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator5})
+	].join(''));
+
+	t.true(validator1.calledOnce);
+	t.true(validator1.withArgs(value).calledOnce);
+	t.true(validator2.calledOnce);
+	t.true(validator2.withArgs(value).calledOnce);
+	t.true(validator2.calledAfter(validator1));
+	t.true(validator3.calledOnce);
+	t.true(validator3.withArgs(value).calledOnce);
+	t.true(validator3.calledAfter(validator2));
+	t.true(validator4.calledOnce);
+	t.true(validator4.withArgs(value).calledOnce);
+	t.true(validator4.calledAfter(validator3));
+	t.true(validator5.calledOnce);
+	t.true(validator5.withArgs(value).calledOnce);
+	t.true(validator5.calledAfter(validator4));
+});
 
 test('Create type function from one validator function returns false - without spy', t => {
 	const type = requireFromIndex('sources/type');
