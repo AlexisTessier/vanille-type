@@ -1,14 +1,26 @@
 'use strict';
 
+const stringable = require('stringable');
 const msg = require('@alexistessier/msg');
+
+function validatorFormatter(data) {
+	const {
+		type,
+		stringifiedValue,
+		defaultFormatter
+	} = data;
+	const functionBody = type === 'function' ? `[${stringifiedValue}]` : '';
+	return `${defaultFormatter(data)}${functionBody}`;
+}
 
 module.exports = {
 	unvalidTypeValidator:({validator, returnedValue})=>msg(
-		`Unvalid type validator. The validator ${validator}`,
-		`doesn't return a boolean value. It returns ${returnedValue}.`
+		`Unvalid type validator. The validator ${stringable(validator, validatorFormatter)}`,
+		`doesn't return a boolean value. It returns ${stringable(returnedValue)}.`
 	),
-	typeError:({value, validator, validatorErrorMessage})=>[msg(
-		`Value ${value} is not of a valid type.`,
-		`It doesn't match the validator ${validator}.`
-	), validatorErrorMessage ? `\n\t${validatorErrorMessage}` : ''].join('')
+	typeError:({value, validator})=>`Value ${stringable(value)} is not of a valid type:`,
+	typeErrorDetail:({validator, errorMessage})=>[
+		`It doesn't match the validator ${stringable(validator, validatorFormatter)}`,
+		errorMessage ? ` - ${errorMessage}` : '.'
+	].join('')
 }

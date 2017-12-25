@@ -1,49 +1,45 @@
 'use strict';
 
-const stringable = require('stringable');
-
 const {
 	unvalidTypeValidator: UNV_TYP_VAL,
-	typeError: TYP_ERR
+	typeError: TYP_ERR,
+	typeErrorDetail: TYP_ERR_DET
 } = require('./settings/logs')
-
-function validatorFormatter(data) {
-	const {
-		type,
-		stringifiedValue,
-		defaultFormatter
-	} = data;
-	const functionBody = type === 'function' ? `[${stringifiedValue}]` : '';
-	return `${defaultFormatter(data)}${functionBody}`;
-}
 
 function type(...validators){
 	return function Type(value){
-		validators.forEach(validator => {
-			const loggableValidator = stringable(validator, validatorFormatter);
+		let valid = true;
+		const validatorErrorMessages = [];
 
-			let valid = true;
-			let validatorErrorMessage = null;
+		validators.forEach(validator => {
+			let returnedValue = null;
 
 			try{
-				valid = validator(value);
+				returnedValue = validator(value);
+				valid = valid && returnedValue;
+				if (!returnedValue) {
+					validatorErrorMessages.push(
+						TYP_ERR_DET({validator})
+					);
+				}
 			}
 			catch(err){
 				valid = false;
-				validatorErrorMessage = err.message;
+				validatorErrorMessages.push(
+					TYP_ERR_DET({validator, errorMessage: err.message})
+				);
 			}
 
-			if (typeof valid !== 'boolean') {
-				throw new TypeError(UNV_TYP_VAL({validator: loggableValidator, returnedValue: stringable(valid)}));
-			}
-			if(!valid){
-				throw new TypeError(TYP_ERR({
-					value: stringable(value),
-					validator: loggableValidator,
-					validatorErrorMessage
-				}))
+			if (typeof returnedValue !== 'boolean') {
+				throw new TypeError(UNV_TYP_VAL({validator, returnedValue}))
 			}
 		});
+
+		if(!valid){
+			throw new TypeError([
+				TYP_ERR({ value }), ...validatorErrorMessages.map((errorMessage, i) => `\t${i}) ${errorMessage}`)
+			].join('\n'))
+		}
 
 		return value;
 	}

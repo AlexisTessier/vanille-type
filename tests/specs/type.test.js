@@ -8,7 +8,9 @@ const stringable = require('stringable');
 
 const requireFromIndex = require('../utils/require-from-index');
 
-test('Type and API', t => {
+const logs = requireFromIndex('sources/settings/logs');
+
+test.only('Type and API', t => {
 	const type = requireFromIndex('sources/type');
 	const typeFromIndex = requireFromIndex('index');
 
@@ -16,7 +18,7 @@ test('Type and API', t => {
 	t.is(typeFromIndex, type);
 });
 
-test('Create type function from one validator function returns true', t => {
+test.only('Create type function from one validator function returns true', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
@@ -45,7 +47,7 @@ test('Create type function from one validator function returns true', t => {
 	t.deepEqual(typedValue, value);
 });
 
-test('Create type from many validators - both returning true', t => {
+test.only('Create type from many validators - both returning true', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => true);
@@ -79,7 +81,7 @@ test('Create type from many validators - both returning true', t => {
 	t.deepEqual(typedValue, value);
 });
 
-test('Create type function from one validator function returns false', t => {
+test.only('Create type function from one validator function returns false', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => false);
@@ -96,16 +98,16 @@ test('Create type function from one validator function returns false', t => {
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Value (object => { valueKey2: (string => 'value value 2') }) is not of a valid type.`,
-		`It doesn't match the validator (function => proxy)[spy].`
-	));
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator})
+	].join(''));
 
 	t.true(validator.calledOnce);
 	t.true(validator.withArgs(value).calledOnce);
 });
 
-test('Create type from many validators - both returning false', t => {
+test.only('Create type from many validators - both returning false', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => false);
@@ -124,17 +126,20 @@ test('Create type from many validators - both returning false', t => {
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Value (object => { valueKey2: (string => 'value value 2') }) is not of a valid type.`,
-		`It doesn't match the validator (function => proxy)[spy].`
-	));
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator1}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator2})
+	].join(''));
 
 	t.true(validator1.calledOnce);
 	t.true(validator1.withArgs(value).calledOnce);
-	t.true(validator2.notCalled);
+	t.true(validator2.calledOnce);
+	t.true(validator2.withArgs(value).calledOnce);
+	t.true(validator2.calledAfter(validator1));
 });
 
-test('Create type from many validators - first returning true and second returning false', t => {
+test.only('Create type from many validators - first returning true and second returning false', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => true);
@@ -153,10 +158,10 @@ test('Create type from many validators - first returning true and second returni
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Value (object => { valueKey: (string => 'value value') }) is not of a valid type.`,
-		`It doesn't match the validator (function => proxy)[spy].`
-	));
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator2})
+	].join(''));
 
 	t.true(validator1.calledOnce);
 	t.true(validator1.withArgs(value).calledOnce);
@@ -165,7 +170,7 @@ test('Create type from many validators - first returning true and second returni
 	t.true(validator2.calledAfter(validator1));
 });
 
-test('Create type from many validators - first returning false and second returning true', t => {
+test.only('Create type from many validators - first returning false and second returning true', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => false);
@@ -184,17 +189,19 @@ test('Create type from many validators - first returning false and second return
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Value (object => { valueKey: (string => 'value value') }) is not of a valid type.`,
-		`It doesn't match the validator (function => proxy)[spy].`
-	));
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator2})
+	].join(''));
 
 	t.true(validator1.calledOnce);
 	t.true(validator1.withArgs(value).calledOnce);
-	t.true(validator2.notCalled);
+	t.true(validator2.calledOnce);
+	t.true(validator2.withArgs(value).calledOnce);
+	t.true(validator2.calledAfter(validator1));
 });
 
-test('Create type from many validators - lot of validators - false at first', t => {
+test.only('Create type from many validators - lot of validators - false at first', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => false);
@@ -219,20 +226,28 @@ test('Create type from many validators - lot of validators - false at first', t 
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Value (object => { valueKey: (string => 'value value') }) is not of a valid type.`,
-		`It doesn't match the validator (function => proxy)[spy].`
-	));
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator1}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator4})
+	].join(''));
 
 	t.true(validator1.calledOnce);
 	t.true(validator1.withArgs(value).calledOnce);
-	t.true(validator2.notCalled);
-	t.true(validator3.notCalled);
-	t.true(validator4.notCalled);
-	t.true(validator5.notCalled);
+	t.true(validator2.calledOnce);
+	t.true(validator2.withArgs(value).calledOnce);
+	t.true(validator2.calledAfter(validator1));
+	t.true(validator3.calledOnce);
+	t.true(validator3.withArgs(value).calledOnce);
+	t.true(validator3.calledAfter(validator2));
+	t.true(validator4.calledOnce);
+	t.true(validator4.withArgs(value).calledOnce);
+	t.true(validator4.calledAfter(validator3));
+	t.true(validator5.calledOnce);
+	t.true(validator5.withArgs(value).calledOnce);
+	t.true(validator5.calledAfter(validator4));
 });
 
-test.todo('Run all the validators and throw Error or not only after');
 test.todo('Create type from many validators - lot of validators - false in middle');
 test.todo('Create type from many validators - lot of validators - false at last');
 
