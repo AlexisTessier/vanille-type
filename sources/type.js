@@ -12,7 +12,7 @@ function type(...validators){
 		const validatorErrorMessages = [];
 
 		validators.forEach(validator => {
-			let returnedValue = null;
+			let returnedValue = undefined;
 
 			try{
 				returnedValue = validator(value);
@@ -24,7 +24,7 @@ function type(...validators){
 				}
 			}
 			catch(err){
-				valid = false;
+				returnedValue = valid = false;
 				validatorErrorMessages.push(
 					TYP_ERR_DET({validator, errorMessage: err.message})
 				);

@@ -10,7 +10,7 @@ const requireFromIndex = require('../utils/require-from-index');
 
 const logs = requireFromIndex('sources/settings/logs');
 
-test.only('Type and API', t => {
+test('Type and API', t => {
 	const type = requireFromIndex('sources/type');
 	const typeFromIndex = requireFromIndex('index');
 
@@ -18,7 +18,7 @@ test.only('Type and API', t => {
 	t.is(typeFromIndex, type);
 });
 
-test.only('Create type function from one validator function returns true', t => {
+test('Create type function from one validator function returns true', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
@@ -47,7 +47,7 @@ test.only('Create type function from one validator function returns true', t => 
 	t.deepEqual(typedValue, value);
 });
 
-test.only('Create type from many validators - both returning true', t => {
+test('Create type from many validators - both returning true', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => true);
@@ -81,7 +81,7 @@ test.only('Create type from many validators - both returning true', t => {
 	t.deepEqual(typedValue, value);
 });
 
-test.only('Create type function from one validator function returns false', t => {
+test('Create type function from one validator function returns false', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => false);
@@ -107,7 +107,7 @@ test.only('Create type function from one validator function returns false', t =>
 	t.true(validator.withArgs(value).calledOnce);
 });
 
-test.only('Create type from many validators - both returning false', t => {
+test('Create type from many validators - both returning false', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => false);
@@ -139,7 +139,7 @@ test.only('Create type from many validators - both returning false', t => {
 	t.true(validator2.calledAfter(validator1));
 });
 
-test.only('Create type from many validators - first returning true and second returning false', t => {
+test('Create type from many validators - first returning true and second returning false', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => true);
@@ -170,7 +170,7 @@ test.only('Create type from many validators - first returning true and second re
 	t.true(validator2.calledAfter(validator1));
 });
 
-test.only('Create type from many validators - first returning false and second returning true', t => {
+test('Create type from many validators - first returning false and second returning true', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => false);
@@ -201,7 +201,7 @@ test.only('Create type from many validators - first returning false and second r
 	t.true(validator2.calledAfter(validator1));
 });
 
-test.only('Create type from many validators - lot of validators - false at first', t => {
+test('Create type from many validators - lot of validators - false at first', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => false);
@@ -248,7 +248,7 @@ test.only('Create type from many validators - lot of validators - false at first
 	t.true(validator5.calledAfter(validator4));
 });
 
-test.only('Create type from many validators - lot of validators - false in middle', t => {
+test('Create type from many validators - lot of validators - false in middle', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => true);
@@ -296,7 +296,7 @@ test.only('Create type from many validators - lot of validators - false in middl
 	t.true(validator5.calledAfter(validator4));
 });
 
-test.only('Create type from many validators - lot of validators - false at last', t => {
+test('Create type from many validators - lot of validators - false at last', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator1 = sinon.spy(v => true);
@@ -359,13 +359,40 @@ test('Create type function from one validator function returns false - without s
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Value (object => {\n  valueKey3: (string => 'value value 3'),\n  multiKey: (number: integer => 42)\n}) is not of a valid type.`,
-		`It doesn't match the validator (function => validator)[v => false].`
-	));
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator})
+	].join(''));
 });
 
-test.todo('Create type from many validators - no spy');
+test('Create type from many validators - no spy', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => true;
+	const validator2 = v => false;
+	const validator3 = v => true && true;
+	const validator4 = v => true && false;
+	const validator5 = v => true && true;
+	const validator6 = v => false && true;
+	const Unvalid = type(validator1, validator2, validator3, validator4, validator5, validator6);
+
+	t.is(typeof Unvalid, 'function');
+	t.is(Unvalid.name, 'Type');
+
+	const value = {test:'val-test'};
+
+	const unvalidTypeError = t.throws(() => {
+		Unvalid(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator2}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator4}),
+		`\n\t2) `, logs.typeErrorDetail({validator: validator6})
+	].join(''));
+});
 
 function validatorReturningNotABooleanMacro(t, notBoolean) {
 	const type = requireFromIndex('sources/type');
@@ -381,19 +408,16 @@ function validatorReturningNotABooleanMacro(t, notBoolean) {
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Unvalid type validator. The validator (function => validator)[v => notBoolean]`,
-		`doesn't return a boolean value. It returns ${stringable(notBoolean)}.`
-	));
+	t.is(unvalidTypeError.message, logs.unvalidTypeValidator({validator, returnedValue: notBoolean}));
 }
 
 validatorReturningNotABooleanMacro.title = (providedTitle, notBoolean) => (
-	`Create type function from one validator function not returning a boolean - (${typeof notBoolean}) - ${providedTitle}`
+	`Create type function from one validator function not returning a boolean - (${stringable(notBoolean)}) - ${providedTitle}`
 )
 
 test(validatorReturningNotABooleanMacro, 'truthy value');
 test('truthy number', validatorReturningNotABooleanMacro, 1);
-test('falsy number', validatorReturningNotABooleanMacro, 1);
+test('falsy number', validatorReturningNotABooleanMacro, 0);
 test(validatorReturningNotABooleanMacro, 42);
 test('float', validatorReturningNotABooleanMacro, 32.8);
 test('empty array', validatorReturningNotABooleanMacro, []);
@@ -406,16 +430,61 @@ test(validatorReturningNotABooleanMacro, Symbol());
 test(validatorReturningNotABooleanMacro, null);
 test(validatorReturningNotABooleanMacro, undefined);
 test(validatorReturningNotABooleanMacro);
-test(validatorReturningNotABooleanMacro, Symbol());
+test(validatorReturningNotABooleanMacro, Symbol('hello'));
 test(validatorReturningNotABooleanMacro, new Boolean(true));
 test(validatorReturningNotABooleanMacro, new Boolean(false));
 test(validatorReturningNotABooleanMacro, new Boolean());
-test(validatorReturningNotABooleanMacro, Symbol());
 test(validatorReturningNotABooleanMacro, new Error());
 test(validatorReturningNotABooleanMacro, new Error('test'));
 test(validatorReturningNotABooleanMacro, new TypeError('test type error'));
 
-test.todo('Create type function from many validator function not returning a boolean')
+function manyValidatorsReturningNotABooleanMacro(t, unvalidValidatorIndex, notBooleans) {
+	const type = requireFromIndex('sources/type');
+
+	const validators = notBooleans.map(notBoolean => v => notBoolean);
+	const UnvalidType = type(...validators);
+
+	t.is(typeof UnvalidType, 'function');
+	t.is(UnvalidType.name, 'Type');
+
+	const unvalidTypeError = t.throws(() => {
+		UnvalidType(true);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, logs.unvalidTypeValidator({
+		validator: validators[unvalidValidatorIndex],
+		returnedValue: notBooleans[unvalidValidatorIndex]
+	}));
+}
+
+manyValidatorsReturningNotABooleanMacro.title = (providedTitle, unvalidValidatorIndex, notBooleans) => msg(
+	`Create type function from many validator function not returning a boolean -`,
+	`(unvalid at index ${unvalidValidatorIndex} - ${stringable(notBooleans)}) - ${providedTitle}`
+)
+
+test(manyValidatorsReturningNotABooleanMacro, 2, [true, false, 'truthy value', 32]);
+test('truthy number', manyValidatorsReturningNotABooleanMacro, 1, [false, 1]);
+test('falsy number', manyValidatorsReturningNotABooleanMacro, 0, [0, 1]);
+test(manyValidatorsReturningNotABooleanMacro, 0, [42, true]);
+test('float', manyValidatorsReturningNotABooleanMacro, 2, [true, true, 32.8]);
+test('empty array', manyValidatorsReturningNotABooleanMacro, 0, [[]]);
+test(manyValidatorsReturningNotABooleanMacro, 1, [false, ['vale', 5]]);
+test(manyValidatorsReturningNotABooleanMacro, 0, [v => v]);
+test(manyValidatorsReturningNotABooleanMacro, 1, [true, {key: 'val'}]);
+test('empty object', manyValidatorsReturningNotABooleanMacro, 4, [true, false, true, true, {}]);
+test(manyValidatorsReturningNotABooleanMacro, 0, [/reg/]);
+test(manyValidatorsReturningNotABooleanMacro, 0, [Symbol()]);
+test(manyValidatorsReturningNotABooleanMacro, 1, [true, null]);
+test(manyValidatorsReturningNotABooleanMacro, 3, [true, false, true, undefined]);
+test(manyValidatorsReturningNotABooleanMacro, 1, [false, Symbol()]);
+test(manyValidatorsReturningNotABooleanMacro, 0, [new Boolean(true)]);
+test(manyValidatorsReturningNotABooleanMacro, 1, [false, new Boolean(false)]);
+test(manyValidatorsReturningNotABooleanMacro, 0, [new Boolean()]);
+test(manyValidatorsReturningNotABooleanMacro, 2, [true, true, Symbol(), 89]);
+test(manyValidatorsReturningNotABooleanMacro, 1, [false, new Error()]);
+test(manyValidatorsReturningNotABooleanMacro, 0, [new Error('test'), false]);
+test(manyValidatorsReturningNotABooleanMacro, 1, [true, new TypeError('test type error')]);
 
 test('Create type function from one validator function throwing an error', t => {
 	const type = requireFromIndex('sources/type');
@@ -433,17 +502,89 @@ test('Create type function from one validator function throwing an error', t => 
 	});
 
 	t.true(unvalidTypeError instanceof TypeError);
-	t.is(unvalidTypeError.message, msg(
-		`Value (object => { valueKey3: (string => 'value value 3') }) is not of a valid type.`,
-		`It doesn't match the validator (function => validator)[${validator}].\n\tvalidator error`
-	));
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator, errorMessage: 'validator error'})
+	].join(''));
 });
 
-test.todo('Create type function from many validators function, all throwing an error');
-test.todo('Create type function from many validators function, one throwing an error the other false');
-test.todo('Create type function from many validators function, one throwing an error the other true');
-test.todo('Create type function from many validators function, one throwing an error the other false - lot of validators');
-test.todo('Create type function from many validators function, one throwing an error the other true - lot of validators');
+test('Create type function from many validators function, all throwing an error', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => {throw new Error('validator1 error')};
+	const validator2 = v => {throw new Error('validator2 error content')};
+	const validator3 = v => {throw new Error('validator3 error message')};
+	const Nothing = type(validator1, validator2, validator3);
+
+	t.is(typeof Nothing, 'function');
+	t.is(Nothing.name, 'Type');
+
+	const value = {valueKey3:'value value 3'};
+
+	const unvalidTypeError = t.throws(() => {
+		Nothing(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator1, errorMessage: 'validator1 error'}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator2, errorMessage: 'validator2 error content'}),
+		`\n\t2) `, logs.typeErrorDetail({validator: validator3, errorMessage: 'validator3 error message'})
+	].join(''));
+});
+
+test('Create type function from many validators function, one throwing an error the other false', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => true;
+	const validator2 = v => {throw new Error('validator2 error content')};
+	const validator3 = v => false;
+	const Nothing = type(validator1, validator2, validator3);
+
+	t.is(typeof Nothing, 'function');
+	t.is(Nothing.name, 'Type');
+
+	const value = {valueKey3:'value value 3'};
+
+	const unvalidTypeError = t.throws(() => {
+		Nothing(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator2, errorMessage: 'validator2 error content'}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator3})
+	].join(''));
+});
+
+test('Create type function from many validators function, one throwing an error the other true', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => {throw new Error('validator1 error message')};
+	const validator2 = v => true;
+	const Nothing = type(validator1, validator2);
+
+	t.is(typeof Nothing, 'function');
+	t.is(Nothing.name, 'Type');
+
+	const value = {valueKey3:'value value 3'};
+
+	const unvalidTypeError = t.throws(() => {
+		Nothing(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator1, errorMessage: 'validator1 error message'}),
+	].join(''));
+});
+
+test.todo('Create type function from many validators function, validator throwing error - with spy');
+test.todo('nested error messages');
+test.todo('deep nested error messages');
 
 /*-------------------------*/
 

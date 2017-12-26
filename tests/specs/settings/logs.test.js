@@ -35,12 +35,18 @@ test('unvalidTypeValidator', t => {
 		`doesn't return a boolean value. It returns ${stringable(92)}.`
 	));
 
-	function returnedValue() {}
+	function returnedValue() {return;}
 
 	t.is(logs.unvalidTypeValidator({ validator: v => true, returnedValue }), msg(
 		`Unvalid type validator. The validator (function => validator)[v => true]`,
 		`doesn't return a boolean value. It returns ${stringable(returnedValue)}.`
 	));
+
+	t.is(logs.unvalidTypeValidator({ validator: v => {throw new Error('err')}, returnedValue: 32 }), [
+		`Unvalid type validator. The validator (function => validator)[v => {`,
+		`\n\t\t\tthrow new Error('err');`,
+		`\n\t\t}] doesn't return a boolean value. It returns ${stringable(32)}.`
+	].join(''));
 });
 
 test('typeError', t => {
