@@ -582,9 +582,172 @@ test('Create type function from many validators function, one throwing an error 
 	].join(''));
 });
 
-test.todo('Create type function from many validators function, validator throwing error - with spy');
-test.todo('nested error messages');
-test.todo('deep nested error messages');
+test('Create type function from many validators function, validator throwing error - with spy', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = sinon.spy(v => {throw new Error('validator1 error message')});
+	const validator2 = sinon.spy(v => true);
+	const validator3 = sinon.spy(v => {throw new Error('validator3 err')});
+	const validator4 = sinon.spy(v => false);
+	const validator5 = sinon.spy(v => {throw new Error('error message')});
+
+	const Nothing = type(validator1, validator2, validator3, validator4, validator5);
+
+	t.true(validator1.notCalled);
+	t.true(validator2.notCalled);
+	t.true(validator3.notCalled);
+	t.true(validator4.notCalled);
+	t.true(validator5.notCalled);
+	t.is(typeof Nothing, 'function');
+	t.is(Nothing.name, 'Type');
+
+	const value = {valueKey3:'value value 3'};
+
+	const unvalidTypeError = t.throws(() => {
+		Nothing(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator1, errorMessage: 'validator1 error message'}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator3, errorMessage: 'validator3 err'}),
+		`\n\t2) `, logs.typeErrorDetail({validator: validator4}),
+		`\n\t3) `, logs.typeErrorDetail({validator: validator5, errorMessage: 'error message'})
+	].join(''));
+
+	t.true(validator1.calledOnce);
+	t.true(validator1.withArgs(value).calledOnce);
+	t.true(validator2.calledOnce);
+	t.true(validator2.withArgs(value).calledOnce);
+	t.true(validator2.calledAfter(validator1));
+	t.true(validator3.calledOnce);
+	t.true(validator3.withArgs(value).calledOnce);
+	t.true(validator3.calledAfter(validator2));
+	t.true(validator4.calledOnce);
+	t.true(validator4.withArgs(value).calledOnce);
+	t.true(validator4.calledAfter(validator3));
+	t.true(validator5.calledOnce);
+	t.true(validator5.withArgs(value).calledOnce);
+	t.true(validator5.calledAfter(validator4));
+});
+
+test('nested types', t => {
+	const type = requireFromIndex('sources/type');
+
+	const Nested = type(v => true);
+	const Root = type(Nested);
+
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const value = {key:'value', otherKey:'blabla'};
+
+	const typedValue = Root(value);
+
+	t.is(typedValue, value);
+	t.deepEqual(typedValue, value);
+});
+
+test('many nested types', t => {
+	const type = requireFromIndex('sources/type');
+
+	const Nested1 = type(v => true);
+	const Nested2 = type(v => true && true);
+	const Nested3 = type(v => true && true && true);
+	const Root = type(Nested1, Nested2, v => true, Nested3);
+
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const value = {key:'val', otherKey:'blabla'};
+
+	const typedValue = Root(value);
+
+	t.is(typedValue, value);
+	t.deepEqual(typedValue, value);
+});
+
+test('many nested types - many validators - spies', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = sinon.spy(v => true);
+	const validator2 = sinon.spy(v => true && true);
+	const validator3 = sinon.spy(v => true);
+	const validator4 = sinon.spy(v => true && true && true);
+	const validator5 = sinon.spy(v => true);
+	const validator6 = sinon.spy(v => true);
+	const validator7 = sinon.spy(v => true && true);
+	const validator8 = sinon.spy(v => true && true && true);
+
+	const Nested1 = type(validator1);
+	const Nested2 = type(validator2, validator3);
+	const Nested3 = type(validator6, validator7, validator8);
+	const Root = type(Nested1, Nested2, validator4, validator5, Nested3);
+
+	t.true(validator1.notCalled);
+	t.true(validator2.notCalled);
+	t.true(validator3.notCalled);
+	t.true(validator4.notCalled);
+	t.true(validator5.notCalled);
+	t.true(validator6.notCalled);
+	t.true(validator7.notCalled);
+	t.true(validator8.notCalled);
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const value = {test:'t', other:'test'};
+
+	const typedValue = Root(value);
+
+	t.is(typedValue, value);
+	t.deepEqual(typedValue, value);
+
+	t.true(validator1.calledOnce);
+	t.true(validator1.withArgs(value).calledOnce);
+	t.true(validator2.calledOnce);
+	t.true(validator2.withArgs(value).calledOnce);
+	t.true(validator2.calledAfter(validator1));
+	t.true(validator3.calledOnce);
+	t.true(validator3.withArgs(value).calledOnce);
+	t.true(validator3.calledAfter(validator2));
+	t.true(validator4.calledOnce);
+	t.true(validator4.withArgs(value).calledOnce);
+	t.true(validator4.calledAfter(validator3));
+	t.true(validator5.calledOnce);
+	t.true(validator5.withArgs(value).calledOnce);
+	t.true(validator5.calledAfter(validator4));
+	t.true(validator6.calledOnce);
+	t.true(validator6.withArgs(value).calledOnce);
+	t.true(validator6.calledAfter(validator5));
+	t.true(validator7.calledOnce);
+	t.true(validator7.withArgs(value).calledOnce);
+	t.true(validator7.calledAfter(validator6));
+	t.true(validator8.calledOnce);
+	t.true(validator8.withArgs(value).calledOnce);
+	t.true(validator8.calledAfter(validator7));
+});
+
+test.skip('nested types and error messages', t => {
+	const type = requireFromIndex('sources/type');
+
+	const Nested = 0;
+});
+
+test.skip('many nested types and error messages', t => {
+	const type = requireFromIndex('sources/type');
+
+	const Nested = 0;
+});
+
+
+test.todo('deep nested types');
+
+test.todo('many deep nested types');
+
+test.todo('deep nested types and error messages');
+
+test.todo('many deep nested types and error messages');
 
 /*-------------------------*/
 

@@ -6,8 +6,31 @@ const {
 	typeErrorDetail: TYP_ERR_DET
 } = require('./settings/logs')
 
+/**
+ * @name TypeFunction
+ *
+ * @description A type function take a value to check the type as input,
+ * returns it if the type matches but throws an error otherwise.
+ */
+const IS_TYPE = Symbol();
+
+/**
+ * @name type
+ *
+ * @description A function providing a way to generate type validation function, usable in plain JS.
+ *
+ * @param {...(TypeFunction|function)} validators The validators to use in order to check a value type.
+ * A validator can be a other type function, or a function returning a booolean
+ * (true if the type matchs, false otherwise), or throwing an error if the value doesn't match the type.
+ *
+ * @return {TypeFunction} A function which will check a value type, using all the validators.
+ */
 function type(...validators){
-	return function Type(value){
+	/**
+	 * @name Type
+	 * @alias TypeFunction
+	 */
+	function Type(value){
 		let valid = true;
 		const validatorErrorMessages = [];
 
@@ -30,7 +53,7 @@ function type(...validators){
 				);
 			}
 
-			if (typeof returnedValue !== 'boolean') {
+			if (!validator[IS_TYPE] && typeof returnedValue !== 'boolean') {
 				throw new TypeError(UNV_TYP_VAL({validator, returnedValue}))
 			}
 		});
@@ -43,6 +66,10 @@ function type(...validators){
 
 		return value;
 	}
+
+	return Object.assign(Type, {
+		[IS_TYPE]: true
+	});
 }
 
 module.exports = type;
