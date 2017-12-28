@@ -6,6 +6,8 @@ const {
 	typeErrorDetail: TYP_ERR_DET
 } = require('./settings/logs')
 
+const FAILURES = Symbol();
+
 /**
  * @private
  */
@@ -15,13 +17,15 @@ function VanilleTypeReport(value){
 	function message() {
 		return [
 			TYP_ERR({ value }), ...failures.map((errorMessage, i) => `\t${i}) ${errorMessage}`)
-		].join('\n'))
+		].join('\n')
 	}
 
 	return {
-		addFailure(failure){ failures.push(...failure) },
+		addFailure(failure){ failures.push(failure) },
 		isValid(){ return failures.length === 0 },
-		toTypeError(){ return new TypeError(message()) }
+		toTypeError(){return Object.assign(new TypeError(message()), {
+			[FAILURES]: failures
+		})}
 	}
 }
 
@@ -59,19 +63,15 @@ function type(...validators){
 			try{
 				returnedValue = validator(value);
 				if (!returnedValue) {
-					report.addFailure(
-						TYP_ERR_DET({validator})
-					);
+					report.addFailure(TYP_ERR_DET({validator}));
 				}
 			}
 			catch(err){
-				returnedValue = valid = false;
-
-				console.log(err.message)
-				validatorErrorMessages.push(validatorIsType
-					? err.message.replace(TYP_ERR({ value }), '')
-					: TYP_ERR_DET({validator, errorMessage: err.message})
-				);
+				returnedValue = false;
+				
+				FAILURES in err
+					? err[FAILURES].forEach(report.addFailure)
+					: report.addFailure(TYP_ERR_DET({validator, errorMessage: err.message}));
 			}
 
 			if (!validatorIsType && typeof returnedValue !== 'boolean') {
@@ -79,7 +79,9 @@ function type(...validators){
 			}
 		});
 
-		return report.isValid ? value : throw report.toTypeError();
+		if (!report.isValid()) { throw report.toTypeError(); }
+
+		return value;
 	}
 
 	return Object.assign(Type, {
