@@ -7,6 +7,25 @@ const {
 } = require('./settings/logs')
 
 /**
+ * @private
+ */
+function VanilleTypeReport(value){
+	const failures = [];
+
+	function message() {
+		return [
+			TYP_ERR({ value }), ...failures.map((errorMessage, i) => `\t${i}) ${errorMessage}`)
+		].join('\n'))
+	}
+
+	return {
+		addFailure(failure){ failures.push(...failure) },
+		isValid(){ return failures.length === 0 },
+		toTypeError(){ return new TypeError(message()) }
+	}
+}
+
+/**
  * @name TypeFunction
  *
  * @description A type function take a value to check the type as input,
@@ -31,40 +50,36 @@ function type(...validators){
 	 * @alias TypeFunction
 	 */
 	function Type(value){
-		let valid = true;
-		const validatorErrorMessages = [];
+		const report = VanilleTypeReport(value);
 
 		validators.forEach(validator => {
+			const validatorIsType = validator[IS_TYPE];
 			let returnedValue = undefined;
 
 			try{
 				returnedValue = validator(value);
-				valid = valid && returnedValue;
 				if (!returnedValue) {
-					validatorErrorMessages.push(
+					report.addFailure(
 						TYP_ERR_DET({validator})
 					);
 				}
 			}
 			catch(err){
 				returnedValue = valid = false;
-				validatorErrorMessages.push(
-					TYP_ERR_DET({validator, errorMessage: err.message})
+
+				console.log(err.message)
+				validatorErrorMessages.push(validatorIsType
+					? err.message.replace(TYP_ERR({ value }), '')
+					: TYP_ERR_DET({validator, errorMessage: err.message})
 				);
 			}
 
-			if (!validator[IS_TYPE] && typeof returnedValue !== 'boolean') {
+			if (!validatorIsType && typeof returnedValue !== 'boolean') {
 				throw new TypeError(UNV_TYP_VAL({validator, returnedValue}))
 			}
 		});
 
-		if(!valid){
-			throw new TypeError([
-				TYP_ERR({ value }), ...validatorErrorMessages.map((errorMessage, i) => `\t${i}) ${errorMessage}`)
-			].join('\n'))
-		}
-
-		return value;
+		return report.isValid ? value : throw report.toTypeError();
 	}
 
 	return Object.assign(Type, {
