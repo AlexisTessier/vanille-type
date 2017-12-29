@@ -846,11 +846,113 @@ test('many nested types and error messages', t => {
 	].join(''));
 });
 
-test.skip('many nested types usage in validator function and error messages', t => {
+test('many nested types usage in validator function and error messages', t => {
 	const type = requireFromIndex('sources/type');
 
-	const Nested = 0;
+	const validator1 = v => true;
+	const validator2 = v => true && false;
+	const validator3 = v => false && true;
+	const validator4 = v => false && true && true;
+	const validator5 = v => true && false && true;
+	const validator6 = v => true && false && true;
+	const validator7 = v => true;
+	const validator8 = v => false && true && true;
+	const validator9 = v => false && false;
+
+	const Nested1 = type(validator1);
+	const Nested2 = type(validator2);
+	const Nested3 = type(validator3);
+	const Nested4 = type(validator4, validator5);
+	const Nested5 = type(validator6);
+	const Nested6 = type(validator8, validator3, validator7);
+	const nestedValidator6 = v => Nested6(v);
+	const validator10 = v => type(validator5, nestedValidator6, Nested5)(v) && true;
+	const Nested7 = type(validator10);
+	const validatorNested3 = v => Nested3(v) && true;
+	const validatorNested4 = v => (Nested4(v),true);
+	const validatorNested5 = v => Nested5(v) && true;
+	const validatorNested7 = v => Nested7(v) && true;
+
+	const Root = type(Nested1, validator9, Nested2, validatorNested3, validatorNested4,
+		validatorNested5, Nested6, validatorNested7);
+
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const value = {key:'val', otherKey:'blabla'};
+	const unvalidTypeError = t.throws(() => {
+		Root(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator9}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator2}),
+		`\n\t2) `, logs.typeErrorDetail({validator: validatorNested3}),
+		`\n\t2.0) `, logs.typeErrorDetail({validator: validator3}),
+		`\n\t3) `, logs.typeErrorDetail({validator: validatorNested4}),
+		`\n\t3.0) `, logs.typeErrorDetail({validator: validator4}),
+		`\n\t3.1) `, logs.typeErrorDetail({validator: validator5}),
+		`\n\t4) `, logs.typeErrorDetail({validator: validatorNested5}),
+		`\n\t4.0) `, logs.typeErrorDetail({validator: validator6}),
+		`\n\t5) `, logs.typeErrorDetail({validator: validator8}),
+		`\n\t6) `, logs.typeErrorDetail({validator: validator3}),
+		`\n\t7) `, logs.typeErrorDetail({validator: validatorNested7}),
+		`\n\t7.0) `, logs.typeErrorDetail({validator: validator10}),
+		`\n\t7.0.0) `, logs.typeErrorDetail({validator: validator5}),
+		`\n\t7.0.1) `, logs.typeErrorDetail({validator: nestedValidator6}),
+		`\n\t7.0.1.0) `, logs.typeErrorDetail({validator: validator8}),
+		`\n\t7.0.1.1) `, logs.typeErrorDetail({validator: validator3}),
+		`\n\t7.0.2) `, logs.typeErrorDetail({validator: validator6}),
+	].join(''));
 });
+
+test('nested types with usage in validators functions to check an other value than the root value', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator = v => true;
+	const Nested = type(validator);
+	const Root = type(v => Nested(v.keyTest) && true);
+
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const value = {keyTest: 'value test'};
+
+	const typedValue = Root(value);
+
+	t.is(typedValue, value);
+	t.deepEqual(typedValue, value);
+});
+
+test('nested types with usage in validators functions to check an other value than the root value - error message', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator = v => false;
+	const Nested = type(validator);
+	const nestedValidator = v => Nested(v.keyTest) && true;
+	const Root = type(nestedValidator);
+
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const value = {keyTest: 'value test'};
+
+	const unvalidTypeError = t.throws(() => {
+		Root(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: nestedValidator}),
+		`\n\t0.0) `, logs.typeError({value: value.keyTest}),
+		`\n\t0.0.0) `, logs.typeErrorDetail({validator})
+	].join(''));
+});
+
+test.todo('variations with and without error message for nested types usage in validators function to check an other value than the root value');
 
 test.todo('deep nested types');
 
@@ -871,6 +973,10 @@ test.todo('many deep nested types usage in validator functions and error message
 test.todo('complex deep nested types with type validation on properties');
 
 test.todo('complex deep nested types with type validation on properties and error messages');
+
+/*-------------------------*/
+
+test.todo('type key modifier');
 
 /*-------------------------*/
 

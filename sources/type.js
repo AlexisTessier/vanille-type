@@ -6,16 +6,8 @@ const {
 	typeErrorDetail: TYP_ERR_DET
 } = require('./settings/logs')
 
+const VALUE = Symbol();
 const FAILURES = Symbol();
-
-/**
- * @private
- */
-function nestErrorMessage(errorMessage, i, _, nesting = '') {
-	return errorMessage instanceof Array
-		? errorMessage.map((m,j,k) => nestErrorMessage(m,j,k,`${i-1}.`))
-		: `${nesting}${i}) ${errorMessage}`;
-}
 
 /**
  * @private
@@ -23,6 +15,20 @@ function nestErrorMessage(errorMessage, i, _, nesting = '') {
 function flat(array, flatten = []) {
 	array.forEach(el => el instanceof Array ? flat(el, flatten) : flatten.push(el))
 	return flatten;
+}
+
+/**
+ * @private
+ */
+function nestErrorMessage(errorMessage, i, _, nesting = '') {
+	nesting = `${nesting}${i}`;
+
+	return errorMessage instanceof Object
+		? [
+			`${nesting}) ${errorMessage.root}`,
+			...errorMessage.children.map((m,j,k) => nestErrorMessage(m,j,k,`${nesting}.`))
+		  ].join('\n\t')
+		: `${nesting}) ${errorMessage}`;
 }
 
 /**
@@ -41,6 +47,7 @@ function VanilleTypeReport(value){
 		addFailure(failure){ failures.push(failure) },
 		isValid(){ return failures.length === 0 },
 		toTypeError(){return Object.assign(new TypeError(message()), {
+			[VALUE]: value,
 			[FAILURES]: failures
 		})}
 	}
@@ -74,7 +81,7 @@ function type(...validators){
 		const report = VanilleTypeReport(value);
 
 		validators.forEach(validator => {
-			const validatorIsType = validator[IS_TYPE];
+			const validatorIsType = validator[IS_TYPE] || false;
 			let returnedValue = undefined;
 
 			try{
@@ -86,12 +93,23 @@ function type(...validators){
 			catch(err){
 				returnedValue = false;
 
-				FAILURES in err
-					? ( validatorIsType
-						? err[FAILURES].forEach(report.addFailure)
-						: /* nest the failures */
-						[TYP_ERR_DET({validator}), err[FAILURES]].forEach(report.addFailure)
-					) : report.addFailure(TYP_ERR_DET({validator, errorMessage: err.message}));
+				if(FAILURES in err){
+					if (validatorIsType) {
+						err[FAILURES].forEach(report.addFailure)
+					}
+					else {
+						report.addFailure({
+							root: TYP_ERR_DET({validator}),
+							children:  Object.is(err[VALUE], value) ? err[FAILURES] : [{
+								root: TYP_ERR({value: err[VALUE]}),
+								children: err[FAILURES]
+							}]
+						})
+					}
+				}
+				else{
+					report.addFailure(TYP_ERR_DET({validator, errorMessage: err.message}));
+				}
 			}
 
 			if (!validatorIsType && typeof returnedValue !== 'boolean') {
