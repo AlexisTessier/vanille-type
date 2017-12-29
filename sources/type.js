@@ -11,13 +11,30 @@ const FAILURES = Symbol();
 /**
  * @private
  */
+function nestErrorMessage(errorMessage, i, _, nesting = '') {
+	return errorMessage instanceof Array
+		? errorMessage.map((m,j,k) => nestErrorMessage(m,j,k,`${i-1}.`))
+		: `${nesting}${i}) ${errorMessage}`;
+}
+
+/**
+ * @private
+ */
+function flat(array, flatten = []) {
+	array.forEach(el => el instanceof Array ? flat(el, flatten) : flatten.push(el))
+	return flatten;
+}
+
+/**
+ * @private
+ */
 function VanilleTypeReport(value){
 	const failures = [];
 
 	function message() {
-		return [
-			TYP_ERR({ value }), ...failures.map((errorMessage, i) => `\t${i}) ${errorMessage}`)
-		].join('\n')
+		return flat([
+			TYP_ERR({ value }), failures.map(nestErrorMessage)
+		]).join('\n\t')
 	}
 
 	return {
@@ -68,10 +85,13 @@ function type(...validators){
 			}
 			catch(err){
 				returnedValue = false;
-				
+
 				FAILURES in err
-					? err[FAILURES].forEach(report.addFailure)
-					: report.addFailure(TYP_ERR_DET({validator, errorMessage: err.message}));
+					? ( validatorIsType
+						? err[FAILURES].forEach(report.addFailure)
+						: /* nest the failures */
+						[TYP_ERR_DET({validator}), err[FAILURES]].forEach(report.addFailure)
+					) : report.addFailure(TYP_ERR_DET({validator, errorMessage: err.message}));
 			}
 
 			if (!validatorIsType && typeof returnedValue !== 'boolean') {
