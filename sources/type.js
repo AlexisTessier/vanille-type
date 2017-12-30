@@ -8,9 +8,17 @@ const {
 
 const VALUE = Symbol();
 const FAILURES = Symbol();
+const typeErrorsMetadatas = new WeakMap();
 
 /**
  * @private
+ *
+ * @description flatten an array.
+ *
+ * @param {Array} array The array to flatten.
+ * @param {Array} flatten The flatten array to fill with elements of array.
+ *
+ * @return {Array} The flattened array.
  */
 function flat(array, flatten = []) {
 	array.forEach(el => el instanceof Array ? flat(el, flatten) : flatten.push(el))
@@ -19,6 +27,15 @@ function flat(array, flatten = []) {
 
 /**
  * @private
+ *
+ * @description A mapping function to prefix errors messages with a nesting path.
+ *
+ * @param {string | NestedErrorMessage} errorMessage The error messages to prefix with a nesting path.
+ * @param {number} i The mapping index.
+ * @param {Array} _ The mapped array.
+ * @param {string} nesting The root nesting path.
+ *
+ * @return {string} The prefixed error message.
  */
 function nestErrorMessage(errorMessage, i, _, nesting = '') {
 	nesting = `${nesting}${i}`;
@@ -33,6 +50,12 @@ function nestErrorMessage(errorMessage, i, _, nesting = '') {
 
 /**
  * @private
+ *
+ * @description VanilleTypeReport are use to aggregate failures and generate final TypeError.
+ *
+ * @param {any} value The subject of the report.
+ *
+ * @return {object} A vanille type report.
  */
 function VanilleTypeReport(value){
 	const failures = [];
@@ -46,18 +69,22 @@ function VanilleTypeReport(value){
 	return {
 		addFailure(failure){ failures.push(failure) },
 		isValid(){ return failures.length === 0 },
-		toTypeError(){return Object.assign(new TypeError(message()), {
-			[VALUE]: value,
-			[FAILURES]: failures
-		})}
+		toTypeError(){
+			const err = new TypeError(message());
+
+			typeErrorsMetadatas.set(err, {
+				[VALUE]: value,
+				[FAILURES]: failures
+			});
+
+			return err;
+		}
 	}
 }
 
 /**
  * @name TypeFunction
- *
- * @description A type function take a value to check the type as input,
- * returns it if the type matches but throws an error otherwise.
+ * @alias Type
  */
 const IS_TYPE = Symbol();
 
@@ -75,7 +102,13 @@ const IS_TYPE = Symbol();
 function type(...validators){
 	/**
 	 * @name Type
-	 * @alias TypeFunction
+	 *
+	 * @description A type function take a value to check the type as input,
+ 	 * returns it if the type matches but throws an error otherwise.
+	 *
+	 * @param {any} value The value to check the type.
+	 *
+	 * @return {any} The value itself, unmodified if the value match the type.
 	 */
 	function Type(value){
 		const report = VanilleTypeReport(value);
@@ -93,16 +126,18 @@ function type(...validators){
 			catch(err){
 				returnedValue = false;
 
-				if(FAILURES in err){
+				if(typeErrorsMetadatas.has(err)){
+					const metadatas = typeErrorsMetadatas.get(err);
+
 					if (validatorIsType) {
-						err[FAILURES].forEach(report.addFailure)
+						metadatas[FAILURES].forEach(report.addFailure)
 					}
 					else {
 						report.addFailure({
 							root: TYP_ERR_DET({validator}),
-							children:  Object.is(err[VALUE], value) ? err[FAILURES] : [{
-								root: TYP_ERR({value: err[VALUE]}),
-								children: err[FAILURES]
+							children:  Object.is(metadatas[VALUE], value) ? metadatas[FAILURES] : [{
+								root: TYP_ERR({value: metadatas[VALUE]}),
+								children: metadatas[FAILURES]
 							}]
 						})
 					}

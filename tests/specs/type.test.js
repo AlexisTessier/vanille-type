@@ -653,7 +653,7 @@ test('nested type usage in validator function', t => {
 	const type = requireFromIndex('sources/type');
 
 	const Nested = type(v => true);
-	const Root = type(v => (Nested(v),true));
+	const Root = type(v => Nested(v) && true);
 
 	t.is(typeof Root, 'function');
 	t.is(Root.name, 'Type');
@@ -691,7 +691,7 @@ test('many nested types usage in valodator function', t => {
 	const Nested1 = type(v => true);
 	const Nested2 = type(v => true && true);
 	const Nested3 = type(v => true && true && true);
-	const Root = type(Nested1, v => (Nested2(v),Nested3(v.key),true));
+	const Root = type(Nested1, v => Nested2(v) && Nested3(v.key) && true);
 
 	t.is(typeof Root, 'function');
 	t.is(Root.name, 'Type');
@@ -869,7 +869,7 @@ test('many nested types usage in validator function and error messages', t => {
 	const validator10 = v => type(validator5, nestedValidator6, Nested5)(v) && true;
 	const Nested7 = type(validator10);
 	const validatorNested3 = v => Nested3(v) && true;
-	const validatorNested4 = v => (Nested4(v),true);
+	const validatorNested4 = v => Nested4(v) && true;
 	const validatorNested5 = v => Nested5(v) && true;
 	const validatorNested7 = v => Nested7(v) && true;
 
@@ -952,7 +952,82 @@ test('nested types with usage in validators functions to check an other value th
 	].join(''));
 });
 
-test.todo('variations with and without error message for nested types usage in validators function to check an other value than the root value');
+function nestedTypeUsageInValidatorsFunctionToCheckOtherValueThanRootValue(t, rootValue, checkedValue) {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => true;
+	const validator2 = v => true;
+	const Nested = type(validator1);
+	const nestedValidator = v => (Nested(checkedValue) && true) || true;
+	const Root = type(validator2, nestedValidator);
+
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const typedValue = Root(rootValue);
+
+	t.is(typedValue, rootValue);
+	t.deepEqual(typedValue, rootValue);
+}
+
+nestedTypeUsageInValidatorsFunctionToCheckOtherValueThanRootValue.title = (providedTitle, rootValue, checkedValue) => (
+	`nested types usage in validators function to check an other value than the root value - ${providedTitle} - root: ${stringable(rootValue)} - checked: ${stringable(checkedValue)}`
+)
+
+function nestedTypeUsageInValidatorsFunctionToCheckOtherValueThanRootValueWithErrorMessage(t, rootValue, checkedValue) {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => false;
+	const validator2 = v => false;
+	const Nested = type(validator1);
+	const nestedValidator = v => (Nested(checkedValue) && true) && false;
+	const Root = type(validator2, nestedValidator);
+
+	t.is(typeof Root, 'function');
+	t.is(Root.name, 'Type');
+
+	const unvalidTypeError = t.throws(()=>{
+		Root(rootValue);
+	});
+
+	const isSame =
+		(rootValue === false && checkedValue === false) ||
+		(rootValue === true && checkedValue === true) ||
+		(rootValue === null && checkedValue === null) ||
+		(rootValue === undefined && checkedValue === undefined);
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value: rootValue}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator2}),
+		`\n\t1) `, logs.typeErrorDetail({validator: nestedValidator}),
+		`\n\t1.0) `, isSame ? '' : logs.typeError({value: checkedValue}),
+		isSame ? '' : `\n\t1.0.0) `, logs.typeErrorDetail({validator: validator1}),
+	].join(''));
+}
+
+nestedTypeUsageInValidatorsFunctionToCheckOtherValueThanRootValueWithErrorMessage.title = (providedTitle, rootValue, checkedValue) => (
+	`nested types usage in validators function to check an other value than the root value and error message - ${providedTitle} - root: ${stringable(rootValue)} - checked: ${stringable(checkedValue)}`
+)
+
+const rootValues = [
+	'string', 'other string', 42, 0, -12, [], ['not', 'empty', 'array'],
+	NaN, {}, {not: 'empty', object: 42}, false, true, null, undefined, /regex/, function t(){return;},
+	Symbol(), Symbol('hello')
+];
+
+const checkedValues = ['a string', 'other string 2', 43, -1, 12, [], ['not', 'empty', 'array', 2],
+	Infinity, {}, new Object(), {not: 'empty', object: 42}, {not2: 'empty object', key: 13}, /regex/,
+	function t() {return;}, Symbol(), Symbol('hello'), false, true, null, undefined
+];
+
+for(const rootValue of rootValues){
+	for(const checkedValue of checkedValues){
+		test(nestedTypeUsageInValidatorsFunctionToCheckOtherValueThanRootValue, rootValue, checkedValue);
+		test(nestedTypeUsageInValidatorsFunctionToCheckOtherValueThanRootValueWithErrorMessage, rootValue, checkedValue);
+	}
+}
+/*-------*/
 
 test.todo('deep nested types');
 
@@ -973,6 +1048,22 @@ test.todo('many deep nested types usage in validator functions and error message
 test.todo('complex deep nested types with type validation on properties');
 
 test.todo('complex deep nested types with type validation on properties and error messages');
+
+/*-------------------------*/
+
+test('ensure that internal TypeError symbols and properties are not enumerable', t => {
+	const type = requireFromIndex('sources/type');
+
+	const Type = type(v => false);
+
+	const unvalidTypeError = t.throws(()=>{
+		Type('whatever');
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.deepEqual(Object.getOwnPropertyNames(unvalidTypeError), Object.getOwnPropertyNames(new TypeError('whatever')));
+	t.deepEqual(Object.getOwnPropertySymbols(unvalidTypeError), Object.getOwnPropertySymbols(new TypeError('whatever')));
+});
 
 /*-------------------------*/
 
