@@ -6,9 +6,11 @@ const {
 	typeErrorDetail: TYP_ERR_DET
 } = require('./settings/logs')
 
+const typeErrorsMetadatas = new WeakMap();
 const VALUE = Symbol();
 const FAILURES = Symbol();
-const typeErrorsMetadatas = new WeakMap();
+
+const types = new WeakSet();
 
 /**
  * @private
@@ -51,7 +53,7 @@ function nestErrorMessage(errorMessage, i, _, nesting = '') {
 /**
  * @private
  *
- * @description VanilleTypeReport are use to aggregate failures and generate final TypeError.
+ * @description VanilleTypeReport are used to aggregate failures and generate final TypeError.
  *
  * @param {any} value The subject of the report.
  *
@@ -83,12 +85,6 @@ function VanilleTypeReport(value){
 }
 
 /**
- * @name TypeFunction
- * @alias Type
- */
-const IS_TYPE = Symbol();
-
-/**
  * @name type
  *
  * @description A function providing a way to generate type validation function, usable in plain JS.
@@ -101,7 +97,8 @@ const IS_TYPE = Symbol();
  */
 function type(...validators){
 	/**
-	 * @name Type
+	 * @name TypeFunction
+	 * @alias Type
 	 *
 	 * @description A type function take a value to check the type as input,
  	 * returns it if the type matches but throws an error otherwise.
@@ -114,7 +111,7 @@ function type(...validators){
 		const report = VanilleTypeReport(value);
 
 		validators.forEach(validator => {
-			const validatorIsType = validator[IS_TYPE] || false;
+			const validatorIsType = types.has(validator);
 			let returnedValue = undefined;
 
 			try{
@@ -157,9 +154,11 @@ function type(...validators){
 		return value;
 	}
 
-	return Object.assign(Type, {
-		[IS_TYPE]: true
-	});
+	types.add(Type);
+
+	return Type;
 }
 
-module.exports = type;
+module.exports = Object.assign(type, {
+	path: path => (...validators) => type(...validators.map(validator => v => validator(v[path])))
+});
