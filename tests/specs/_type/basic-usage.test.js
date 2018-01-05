@@ -1223,7 +1223,34 @@ test('many deep nested types usage in validator functions', t => {
 	t.deepEqual(typedValue, value);
 });
 
-test.todo('deep nested types and error messages');
+test('deep nested types and error messages', t => {
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => true
+	const validator2 = v => false
+	const validator3 = v => false
+	const validator4 = v => false
+	const validator5 = v => false
+	const nested1 = type(validator1, validator2);
+	const nested2 = type(validator3, nested1, validator4);
+	const nested3 = type(nested2, validator5);
+	const Root = type(nested3);
+
+	const value = {key: 'test'};
+
+	const unvalidTypeError = t.throws(()=>{
+		Root(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: validator3}),
+		`\n\t1) `, logs.typeErrorDetail({validator: validator2}),
+		`\n\t2) `, logs.typeErrorDetail({validator: validator4}),
+		`\n\t3) `, logs.typeErrorDetail({validator: validator5})
+	].join(''));
+});
 
 test.todo('deep nested types usage in validator functions and error messages');
 
@@ -1258,7 +1285,7 @@ test('ensure that internal Type symbols are not enumerable', t => {
 
 	t.deepEqual(Object.getOwnPropertyNames(Type), [
 		...Object.getOwnPropertyNames(function test(){return;}),
-		//'path'
+		'path'
 	]);
 	t.deepEqual(Object.getOwnPropertySymbols(Type), Object.getOwnPropertySymbols(function test(){return;}));
 });

@@ -84,6 +84,17 @@ function VanilleTypeReport(value){
 	}
 }
 
+function getValuePath(value, ...path){
+	let v = value;
+	const fragments = [...path];
+
+	while(fragments.length > 0){
+		v = v[fragments.shift()];
+	}
+
+	return v;
+}
+
 /**
  * @name type
  *
@@ -156,9 +167,11 @@ function type(...validators){
 
 	types.add(Type);
 
-	return Type;
+	return Object.assign(Type, {
+		path: (...path) => type(...validators.map(validator => v => validator(getValuePath(v, ...path))))
+	});
 }
 
 module.exports = Object.assign(type, {
-	path: path => (...validators) => type(...validators.map(validator => v => validator(v[path])))
+	path: path => (...validators) => type(...validators).path(path)
 });
