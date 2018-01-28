@@ -6,12 +6,14 @@ const clone = require('clone');
 
 const requireFromIndex = require('../../utils/require-from-index');
 
-test('type path modifier - from a Type - type and api', t => {
+const logs = requireFromIndex('sources/settings/logs');
+
+test('type path modifier - from a type - type and api', t => {
 	const type = requireFromIndex('sources/type');
 
-	const TypeFunction = type(v => true);
+	const AType = type(v => true);
 
-	t.is(typeof TypeFunction.path, 'function');
+	t.is(typeof AType.path, 'function');
 });
 
 test('type path modifier - from type function - type and api', t => {
@@ -22,36 +24,104 @@ test('type path modifier - from type function - type and api', t => {
 
 /*---------------*/
 
-test('type path modifier - from a Type - validator returns true - usage with simple key', t => {
-	const type = requireFromIndex('sources/type');
+test('type path modifier - from a type - validator returns true - usage with simple key', t => {
+	const type = requireFromIndex('sources/type')
 
-	const validator = sinon.spy(v => true);
+	const validator = sinon.spy(v => true)
 
-	const BaseType = type(validator);
+	const BaseType = type(validator)
 
-	t.is(typeof BaseType, 'function');
-	t.is(BaseType.name, 'Type');
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
 
-	const Type = BaseType.path('OKey');
+	const Type = BaseType.path('OKey')
 
-	t.is(typeof Type, 'function');
-	t.is(Type.name, 'Type');
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
 
-	const OKey = { test: 't', keykey: 'key val' };
+	const OKey = { test: 't', keykey: 'key val' }
 	const value = {
 		OKey, otherKey: { other: 'key' }
-	};
-	const expectedTypedValue = clone(value);
+	}
+	const expectedTypedValue = clone(value)
 
-	t.true(validator.notCalled);
+	t.true(validator.notCalled)
 
-	const typedValue = Type(value);
-	t.is(typedValue, value);
-	t.deepEqual(typedValue, expectedTypedValue);
+	const typedValue = Type(value)
+	t.is(typedValue, value)
+	t.deepEqual(typedValue, expectedTypedValue)
 
-	t.true(validator.calledOnce);
-	t.true(validator.withArgs(OKey).calledOnce);
-});
+	t.true(validator.calledOnce)
+	t.true(validator.withArgs(OKey).calledOnce)
+})
+
+test('type path modifier - from a type - validator returns false - usage with simple key', t => {
+	const type = requireFromIndex('sources/type')
+
+	const validator = v => false
+
+	const BaseType = type(validator)
+
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
+
+	const Type = BaseType.path('BKey')
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const BKey = { test: 't', num: 42 }
+	const value = {
+		BKey, otherKey: { other2: 'key2' }
+	}
+
+	const unvalidTypeError = t.throws(()=>{
+		Type(value)
+	});
+
+	t.true(unvalidTypeError instanceof TypeError)
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0 - BKey) `, logs.pathTypeErrorDetail({path: 'BKey', validator})
+	].join(''));
+})
+
+test('type path modifier - from a type - validator throws error - usage with simple key', t => {
+	const type = requireFromIndex('sources/type')
+
+	const validator = v => {
+		throw new Error('An error message test')
+	}
+
+	const BaseType = type(validator)
+
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
+
+	const Type = BaseType.path('k')
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const k = { test: 't', num: 42 }
+	const value = {
+		k, test: { t: 'tv' }
+	}
+
+	const unvalidTypeError = t.throws(()=>{
+		Type(value)
+	});
+
+	t.true(unvalidTypeError instanceof TypeError)
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0 - k) `, logs.pathTypeErrorDetail({
+			path: 'k',
+			validator,
+			errorMessage: 'An error message test'
+		})
+	].join(''));
+})
 
 test('type path modifier - from type function - validator returns true - usage with simple key', t => {
 	const type = requireFromIndex('sources/type');
@@ -82,10 +152,12 @@ test('type path modifier - from type function - validator returns true - usage w
 	t.true(validator.calledOnce);
 	t.true(validator.withArgs(aKey).calledOnce);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
 /*---------------*/
 
-test('type path modifier - from a Type - validator returns true - usage with 2 fragment path', t => {
+test('type path modifier - from a type - validator returns true - usage with 2 fragment path', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
@@ -95,10 +167,10 @@ test('type path modifier - from a Type - validator returns true - usage with 2 f
 	t.is(typeof BaseType, 'function');
 	t.is(BaseType.name, 'Type');
 
-	const Type = BaseType.path('AK', 'nestKey');
+	const AType = BaseType.path('AK', 'nestKey');
 
-	t.is(typeof Type, 'function');
-	t.is(Type.name, 'Type');
+	t.is(typeof AType, 'function');
+	t.is(AType.name, 'Type');
 
 	const nestKey = { test: 42 };
 	const AK = { test: 't', nestKey };
@@ -109,341 +181,113 @@ test('type path modifier - from a Type - validator returns true - usage with 2 f
 
 	t.true(validator.notCalled);
 
-	const typedValue = Type(value);
+	const typedValue = AType(value);
 	t.is(typedValue, value);
 	t.deepEqual(typedValue, expectedTypedValue);
 
 	t.true(validator.calledOnce);
 	t.true(validator.withArgs(nestKey).calledOnce);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from type - validator returns true - usage with deep path', t => {
+test.skip('type path modifier - from a type - validator returns true - usage with deep path', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
-test.skip('type path modifier - from type - validator returns true - usage with unvalid path', t => {
+/*---------------*/
+
+test.skip('type path modifier - from a type - validator returns true - usage with unvalid path', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
-test.skip('type path modifier - from type - validator returns true - usage with empty path', t => {
+/*---------------*/
+
+test.skip('type path modifier - from a type - validator returns true - usage with empty path', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
-test.skip('type path modifier - from type - validator returns true - usage with blank path', t => {
+/*---------------*/
+
+test.skip('type path modifier - from a type - validator returns true - usage with blank path', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
-test.skip('type path modifier - from type - validator returns true - usage with simple key - undefined key', t => {
+/*---------------*/
+
+test.skip('type path modifier - from a type - validator returns true - usage with simple key - undefined key', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
-test.skip('type path modifier - from type - validator returns true - usage with 2 fragment path - inexistent path', t => {
+/*---------------*/
+
+test.skip('type path modifier - from a type - validator returns true - usage with 2 fragment path - inexistent path', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
 });
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
 
-test.skip('type path modifier - from type - validator returns true - usage with deep path - inexistent path', t => {
+/*---------------*/
+
+test.skip('type path modifier - from a type - validator returns true - usage with deep path - inexistent path', t => {
 	const type = requireFromIndex('sources/type');
 
 	const validator = sinon.spy(v => true);
 });
-
-/*----*/
-
-test.skip('type path modifier - from type - validator returns false - usage with simple key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with 2 fragments path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with deep path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with unvalid path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with empty path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with blank path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with simple key - undefined key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with 2 fragment path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator returns false - usage with deep path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-/*----*/
-
-test.skip('type path modifier - from type - validator throws error - usage with simple key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with unvalid path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with empty path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with blank path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with 2 fragment path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with deep path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with simple key - undefined key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with 2 fragment path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type - validator throws error - usage with deep path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.todo('ensure path is not modified');
-test.todo('many types variants');
-test.todo('many validators variants');
-test.todo('unvalid path arguments');
-
-/*----------------------------------*/
-
-
-
-test.skip('type path modifier - from type function - validator returns true - usage with simple key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with unvalid path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with empty path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with blank path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with 2 fragment path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with deep path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with simple key - undefined key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with 2 fragment path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns true - usage with deep path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with simple key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with unvalid path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with empty path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with blank path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with 2 fragment path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with deep path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with simple key - undefined key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with 2 fragment path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator returns false - usage with deep path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with simple key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with unvalid path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with empty path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with blank path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with 2 fragment path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with deep path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with simple key - undefined key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with 2 fragment path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.skip('type path modifier - from type function - validator throws error - usage with deep path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
-
-test.todo('many types variants');
-test.todo('many validators variants');
-test.todo('unvalid path arguments');
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+test.todo('from type function variant')
+test.todo('validator returns false variant')
+test.todo('validator throws error variant')
+
+/*---------------*/
+
+test.todo('ensure path is not modified')
+test.todo('many types variants')
+test.todo('many validators variants')
+test.todo('unvalid path arguments')

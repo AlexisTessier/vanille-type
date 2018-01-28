@@ -22,5 +22,9 @@ module.exports = {
 	typeErrorDetail:({validator, errorMessage})=>[
 		`It doesn't match the validator ${stringable(validator, validatorFormatter)}`,
 		errorMessage ? ` - ${errorMessage}` : '.'
-	].join('')
+	].join(''),
+	pathTypeErrorDetail:({path, validator, errorMessage})=>[
+		`${path} value doesn't match the validator ${stringable(validator, validatorFormatter)}`,
+		errorMessage ? ` - ${errorMessage}` : '.'
+	].join(''),
 }

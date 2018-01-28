@@ -1252,7 +1252,59 @@ test('deep nested types and error messages', t => {
 	].join(''));
 });
 
-test.todo('deep nested types usage in validator functions and error messages');
+test('deep nested types usage in validator functions and error messages', t=>{
+	const type = requireFromIndex('sources/type');
+
+	const validator1 = v => true	
+	const validator2 = v => false
+	const validator3 = v => false
+	const validator4 = v => true
+	const validator5 = v => false
+	const nested1Validator = v => validator1(v) && validator2(v) && true
+	const nested1 = type(nested1Validator)
+	const nested2Validator = v => validator3(v) && true
+	const nested2 = type(nested2Validator)
+	const nested3Validator = v => validator1(v) && validator4(v) && true
+	const nested3 = type(nested3Validator)
+	const nested4Validator = v => validator5(v) && true
+	const nested4 = type(nested4Validator)
+	const nested5Validator = v => nested3(v) && nested1(v) && true
+	const nested5 = type(nested5Validator)
+	const deep1 = v => nested1(v) && true
+	const deep2 = v => nested2(v) && true
+	const deep3 = v => nested3(v) && true
+	const deep4 = v => nested4(v) && true
+	const deep5 = v => nested5(v) && true
+	const Root = type(
+		type(deep1),
+		type(deep2),
+		type(deep3),
+		type(deep4),
+		type(deep5, deep2)
+	);
+
+	const value = 42;
+
+	const unvalidTypeError = t.throws(()=>{
+		Root(value);
+	});
+
+	t.true(unvalidTypeError instanceof TypeError);
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0) `, logs.typeErrorDetail({validator: deep1}),
+		`\n\t0.0) `, logs.typeErrorDetail({validator: nested1Validator}),
+		`\n\t1) `, logs.typeErrorDetail({validator: deep2}),
+		`\n\t1.0) `, logs.typeErrorDetail({validator: nested2Validator}),
+		`\n\t2) `, logs.typeErrorDetail({validator: deep4}),
+		`\n\t2.0) `, logs.typeErrorDetail({validator: nested4Validator}),
+		`\n\t3) `, logs.typeErrorDetail({validator: deep5}),
+		`\n\t3.0) `, logs.typeErrorDetail({validator: nested5Validator}),
+		`\n\t3.0.0) `, logs.typeErrorDetail({validator: nested1Validator}),
+		`\n\t4) `, logs.typeErrorDetail({validator: deep2}),
+		`\n\t4.0) `, logs.typeErrorDetail({validator: nested2Validator})
+	].join(''));
+});
 
 test.todo('many deep nested types and error messages');
 
@@ -1294,5 +1346,4 @@ test('ensure that internal Type symbols are not enumerable', t => {
 
 test.todo('Trying to create type without parameters should throw an error');
 test.todo('Trying to create type with wrong parameters should throw an error');
-
 test.todo('Trying to create a type with unvalid validators arguments');

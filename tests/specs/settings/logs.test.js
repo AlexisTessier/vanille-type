@@ -17,7 +17,8 @@ test('Type and content', t => {
 	t.deepEqual(Object.keys(logs).sort(), [
 		'unvalidTypeValidator',
 		'typeError',
-		'typeErrorDetail'
+		'typeErrorDetail',
+		'pathTypeErrorDetail'
 	].sort());
 });
 
@@ -62,7 +63,6 @@ test('typeError', t => {
 	);
 });
 
-
 test('typeErrorDetail', t => {
 	const logs = requireFromIndex('sources/settings/logs');
 
@@ -81,5 +81,26 @@ test('typeErrorDetail', t => {
 
 	t.is(logs.typeErrorDetail({validator: v => true, errorMessage: 'other message'}),
 		`It doesn't match the validator (function => validator)[v => true] - other message`
+	);
+});
+
+test('pathTypeErrorDetail', t => {
+	const logs = requireFromIndex('sources/settings/logs');
+
+	t.is(typeof logs.pathTypeErrorDetail, 'function');
+	t.is(logs.pathTypeErrorDetail({path: 'akey', validator: 32}),
+		`akey value doesn't match the validator ${stringable(32)}.`
+	);
+
+	t.is(logs.pathTypeErrorDetail({path: 'bkey', validator: v => false}),
+		`bkey value doesn't match the validator (function => validator)[v => false].`
+	);
+
+	t.is(logs.pathTypeErrorDetail({path: 'name.length', validator: 32, errorMessage: 'an error message'}),
+		`name.length value doesn't match the validator ${stringable(32)} - an error message`
+	);
+
+	t.is(logs.pathTypeErrorDetail({path: 'age.number', validator: v => true, errorMessage: 'other message'}),
+		`age.number value doesn't match the validator (function => validator)[v => true] - other message`
 	);
 });

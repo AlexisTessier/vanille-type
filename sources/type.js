@@ -1,53 +1,65 @@
-'use strict';
+'use strict'
 
 const {
 	unvalidTypeValidator: UNV_TYP_VAL,
 	typeError: TYP_ERR,
-	typeErrorDetail: TYP_ERR_DET
+	typeErrorDetail: TYP_ERR_DET,
+	pathTypeErrorDetail: PAT_TYP_ERR_DET
 } = require('./settings/logs')
 
-const typeErrorsMetadatas = new WeakMap();
-const VALUE = Symbol();
-const FAILURES = Symbol();
+const typeErrorsMetadatas = new WeakMap()
+const VALUE = Symbol()
+const FAILURES = Symbol()
 
-const types = new WeakSet();
+const validatorsMetadatas = new WeakMap()
+const PATH = Symbol()
+const VALIDATOR = Symbol()
 
-/**
- * @private
- *
- * @description flatten an array.
- *
- * @param {Array} array The array to flatten.
- * @param {Array} flatten The flatten array to fill with elements of array.
- *
- * @return {Array} The flattened array.
- */
+const types = new WeakSet()
+
+function typeErrorDetail(params) {
+	const validator = params.validator
+
+	if (validatorsMetadatas.has(validator)) {
+		return PAT_TYP_ERR_DET(Object.assign(params, {
+			path: validatorsMetadatas.get(validator)[PATH],
+			validator: validatorsMetadatas.get(validator)[VALIDATOR]
+		}))
+	}
+
+	return TYP_ERR_DET(params)
+}
+
 function flat(array, flatten = []) {
 	array.forEach(el => el instanceof Array ? flat(el, flatten) : flatten.push(el))
 	return flatten;
 }
 
-/**
- * @private
- *
- * @description A mapping function to prefix errors messages with a nesting path.
- *
- * @param {string | NestedErrorMessage} errorMessage The error messages to prefix with a nesting path.
- * @param {number} i The mapping index.
- * @param {Array} _ The mapped array.
- * @param {string} nesting The root nesting path.
- *
- * @return {string} The prefixed error message.
- */
-function nestErrorMessage(errorMessage, i, _, nesting = '') {
+function Failure(data, validator) {
+	return {
+		data,
+		validator
+	}
+}
+
+function mapFailureToMessage(failure, i, _, nesting = '') {
+	const {
+		data,
+		validator
+	} = failure
+
 	nesting = `${nesting}${i}`;
 
-	return errorMessage instanceof Object
+	if (validatorsMetadatas.has(validator)) {
+		nesting = `${nesting} - ${validatorsMetadatas.get(validator)[PATH]}`
+	}
+
+	return data instanceof Object
 		? [
-			`${nesting}) ${errorMessage.root}`,
-			...errorMessage.children.map((m,j,k) => nestErrorMessage(m,j,k,`${nesting}.`))
+			`${nesting}) ${data.root}`,
+			...data.children.map((m,j,k) => mapFailureToMessage(m,j,k,`${nesting}.`))
 		  ].join('\n\t')
-		: `${nesting}) ${errorMessage}`;
+		: `${nesting}) ${data}`;
 }
 
 /**
@@ -64,12 +76,14 @@ function VanilleTypeReport(value){
 
 	function message() {
 		return flat([
-			TYP_ERR({ value }), failures.map(nestErrorMessage)
+			TYP_ERR({ value }), failures.map(mapFailureToMessage)
 		]).join('\n\t')
 	}
 
 	return {
-		addFailure(failure){ failures.push(failure) },
+		addFailure(failure){
+			failures.push(failure)
+		},
 		isValid(){ return failures.length === 0 },
 		toTypeError(){
 			const err = new TypeError(message());
@@ -128,7 +142,10 @@ function type(...validators){
 			try{
 				returnedValue = validator(value);
 				if (!returnedValue) {
-					report.addFailure(TYP_ERR_DET({validator}));
+					report.addFailure(Failure(
+						typeErrorDetail({validator}),
+						validator
+					));
 				}
 			}
 			catch(err){
@@ -141,17 +158,23 @@ function type(...validators){
 						metadatas[FAILURES].forEach(report.addFailure)
 					}
 					else {
-						report.addFailure({
-							root: TYP_ERR_DET({validator}),
-							children:  Object.is(metadatas[VALUE], value) ? metadatas[FAILURES] : [{
-								root: TYP_ERR({value: metadatas[VALUE]}),
-								children: metadatas[FAILURES]
-							}]
-						})
+						report.addFailure(Failure(
+							{
+								root: typeErrorDetail({validator}),
+								children:  Object.is(metadatas[VALUE], value) ? metadatas[FAILURES] : [{
+									root: TYP_ERR({value: metadatas[VALUE]}),
+									children: metadatas[FAILURES]
+								}].map(child => Failure(child, validator))
+							},
+							validator
+						))
 					}
 				}
 				else{
-					report.addFailure(TYP_ERR_DET({validator, errorMessage: err.message}));
+					report.addFailure(Failure(
+						typeErrorDetail({validator, errorMessage: err.message}),
+						validator
+					));
 				}
 			}
 
@@ -168,7 +191,14 @@ function type(...validators){
 	types.add(Type);
 
 	return Object.assign(Type, {
-		path: (...path) => type(...validators.map(validator => v => validator(getValuePath(v, ...path))))
+		path: (...path) => type(...validators.map(validator => {
+			const withPathValidator = v => validator(getValuePath(v, ...path))
+			validatorsMetadatas.set(withPathValidator, {
+				[PATH]: path.join('.'),
+				[VALIDATOR]: validator
+			})
+			return withPathValidator
+		}))
 	});
 }
 
