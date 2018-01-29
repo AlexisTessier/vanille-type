@@ -74,6 +74,7 @@
   "devDependencies": {
     "@alexistessier/es-lint-config": "2.1.0",
     "@alexistessier/node-module-starterkit-release-dep": "1.9.2",
+    "@vivaxy/here": "3.2.2",
     "ava": "0.25.0",
     "capitalize": "1.0.0",
     "clone": "2.1.1",
@@ -94,7 +95,6 @@
     "oss-license-name-to-url": "1.2.1",
     "read-yaml": "1.1.0",
     "remarkable": "1.7.1",
-    "serve-here": "3.2.0",
     "shelljs": "0.8.1",
     "sinon": "4.2.2"
   },
