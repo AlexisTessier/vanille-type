@@ -1255,7 +1255,7 @@ test('deep nested types and error messages', t => {
 test('deep nested types usage in validator functions and error messages', t=>{
 	const type = requireFromIndex('sources/type');
 
-	const validator1 = v => true	
+	const validator1 = v => true
 	const validator2 = v => false
 	const validator3 = v => false
 	const validator4 = v => true
