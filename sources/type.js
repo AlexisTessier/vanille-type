@@ -190,16 +190,27 @@ function type(...validators){
 
 	types.add(Type);
 
-	return Object.assign(Type, {
-		path: (...path) => type(...validators.map(validator => {
-			const withPathValidator = v => validator(getValuePath(v, ...path))
-			validatorsMetadatas.set(withPathValidator, {
-				[PATH]: path.join('.'),
-				[VALIDATOR]: validator
-			})
-			return withPathValidator
-		}))
-	});
+	return assignPathModifier(Type, validators)
+}
+
+function assignPathModifier(rootType, validators, ...rootPaths){
+	return Object.assign(rootType, {
+		path: (...path) => {
+			const fullPath = [...rootPaths, ...path]
+			const withPathType = type(...validators.map(validator => {
+				const withPathValidator = v => validator(
+					getValuePath(v, ...fullPath)
+				)
+				validatorsMetadatas.set(withPathValidator, {
+					[PATH]: fullPath.join('.'),
+					[VALIDATOR]: validator
+				})
+				return withPathValidator
+			}))
+
+			return assignPathModifier(withPathType, validators, ...fullPath)
+		}
+	}); 
 }
 
 module.exports = Object.assign(type, {

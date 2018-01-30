@@ -456,18 +456,104 @@ test('type path modifier - from a type - validator returns true - usage with dee
 	t.true(validator.calledOnce)
 	t.true(validator.withArgs(e).calledOnce)
 });
-test.todo('validator returns false variant')
-test.todo('validator throws error variant')
+
+test('type path modifier - from a type - validator returns false - usage with deep path', t => {
+	const type = requireFromIndex('sources/type')
+
+	const validator = v => false
+
+	const BaseType = type(validator)
+
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
+
+	const Type = BaseType.path('i', 'j', 'k', 'l', 'm')
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const m = { n: 'test' }
+	const value = { i: { j: { k: { l: { m } } } } }
+
+	const unvalidTypeError = t.throws(()=>{
+		Type(value)
+	});
+	t.true(unvalidTypeError instanceof TypeError)
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0 - i.j.k.l.m) `, logs.pathTypeErrorDetail({
+			path: 'i.j.k.l.m',
+			validator
+		})
+	].join(''));
+});
+
+test('type path modifier - from a type - validator throws error - usage with deep path', t => {
+	const type = requireFromIndex('sources/type')
+
+	const validator = v => {
+		throw new Error('validator err msg')
+	}
+
+	const BaseType = type(validator)
+
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
+
+	const Type = BaseType.path('n', 'o', 'p', 'q', 'r')
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const r = { s: 'test' }
+	const value = { n: { o: { p: { q: { r } } } } }
+
+	const unvalidTypeError = t.throws(()=>{
+		Type(value)
+	});
+	t.true(unvalidTypeError instanceof TypeError)
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0 - n.o.p.q.r) `, logs.pathTypeErrorDetail({
+			path: 'n.o.p.q.r',
+			validator,
+			errorMessage: 'validator err msg'
+		})
+	].join(''));
+});
 test.todo('from type function variant')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - chained usage', t => {
-	const type = requireFromIndex('sources/type');
+test('type path modifier - from a type - validator returns true - chained usage', t => {
+	const type = requireFromIndex('sources/type')
 
-	const validator = sinon.spy(v => true);
+	const validator = sinon.spy(v => true)
+
+	const BaseType = type(validator)
+
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
+
+	const Type = BaseType.path('one').path('two', 'three')
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const three = { t: 42 }
+	const value = { one : { two : { three } } }
+	const expectedTypedValue = clone(value)
+
+	t.true(validator.notCalled)
+
+	const typedValue = Type(value)
+	t.is(typedValue, value)
+	t.deepEqual(typedValue, expectedTypedValue)
+
+	t.true(validator.calledOnce)
+	t.true(validator.withArgs(three).calledOnce)
 });
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
@@ -477,10 +563,39 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - deep chained usage', t => {
-	const type = requireFromIndex('sources/type');
+test('type path modifier - from a type - validator returns true - deep chained usage', t => {
+	const type = requireFromIndex('sources/type')
 
-	const validator = sinon.spy(v => true);
+	const validator = sinon.spy(v => true)
+
+	const BaseType = type(validator)
+
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
+
+	const Type = BaseType
+		.path('a', 'b')
+		.path('c', 'd', 'e')
+		.path('f', 'g')
+		.path('h', 'i', 'j', 'k')
+		.path('l', 'm', 'n')
+		.path('o')
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const o = { n: 32 }
+	const value = {a:{b:{c:{d:{e:{f:{g:{h:{i:{j:{k:{l:{m:{n:{o}}}}}}}}}}}}}}}
+	const expectedTypedValue = clone(value)
+
+	t.true(validator.notCalled)
+
+	const typedValue = Type(value)
+	t.is(typedValue, value)
+	t.deepEqual(typedValue, expectedTypedValue)
+
+	t.true(validator.calledOnce)
+	t.true(validator.withArgs(o).calledOnce)
 });
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
@@ -490,11 +605,7 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - usage with unvalid path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
+test.todo('type path modifier - from a type - validator returns true - usage with unvalid path')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 test.todo('from type function variant')
@@ -503,11 +614,7 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - usage with empty path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
+test.todo('type path modifier - from a type - validator returns true - usage with empty path')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 test.todo('from type function variant')
@@ -516,11 +623,7 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - usage with blank path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
+test.todo('type path modifier - from a type - validator returns true - usage with blank path')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 test.todo('from type function variant')
@@ -529,11 +632,7 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - usage with simple key - undefined key', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
+test.todo('type path modifier - from a type - validator returns true - usage with simple key - undefined key')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 test.todo('from type function variant')
@@ -542,11 +641,7 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - usage with 2 fragment path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
+test.todo('type path modifier - from a type - validator returns true - usage with 2 fragment path - inexistent path')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 test.todo('from type function variant')
@@ -555,11 +650,7 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.skip('type path modifier - from a type - validator returns true - usage with deep path - inexistent path', t => {
-	const type = requireFromIndex('sources/type');
-
-	const validator = sinon.spy(v => true);
-});
+test.todo('type path modifier - from a type - validator returns true - usage with deep path - inexistent path')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 test.todo('from type function variant')
