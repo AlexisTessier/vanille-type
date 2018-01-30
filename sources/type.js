@@ -210,7 +210,7 @@ function assignPathModifier(rootType, validators, ...rootPaths){
 
 			return assignPathModifier(withPathType, validators, ...fullPath)
 		}
-	}); 
+	});
 }
 
 module.exports = Object.assign(type, {
