@@ -203,5 +203,5 @@ function type(...validators){
 }
 
 module.exports = Object.assign(type, {
-	path: path => (...validators) => type(...validators).path(path)
+	path: (...path) => (...validators) => type(...validators).path(...path)
 });
