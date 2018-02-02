@@ -193,9 +193,14 @@ function type(...validators){
 	return assignPathModifier(Type, validators)
 }
 
+const PathFragment = v => typeof v === 'string' || typeof v === 'symbol' || typeof v === 'number'
+const PathFragmentInterface = type(PathFragment)
+
 function assignPathModifier(rootType, validators, ...rootPaths){
 	return Object.assign(rootType, {
 		path: (...path) => {
+			path.forEach(PathFragmentInterface)
+
 			const fullPath = [...rootPaths, ...path]
 			const withPathType = type(...validators.map(validator => {
 				const withPathValidator = v => validator(

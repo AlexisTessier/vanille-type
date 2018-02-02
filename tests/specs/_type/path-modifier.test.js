@@ -4,6 +4,8 @@ const test = require('ava');
 const sinon = require('sinon');
 const clone = require('clone');
 
+const stringable = require('stringable')
+
 const requireFromIndex = require('../../utils/require-from-index');
 
 const logs = requireFromIndex('sources/settings/logs');
@@ -521,7 +523,36 @@ test('type path modifier - from a type - validator throws error - usage with dee
 		})
 	].join(''));
 });
-test.todo('from type function variant')
+
+test('type path modifier - from type function - validator returns true - usage with deep path', t=>{
+	const type = requireFromIndex('sources/type')
+
+	const validator = sinon.spy(v => true)
+
+	const TypeWithPath = type.path('a', 'b', 'c', 'd', 'e', 'o')
+
+	t.is(typeof TypeWithPath, 'function')
+	t.is(TypeWithPath.name, '')
+
+	const Type = TypeWithPath(validator)
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const o = { n: 'test' }
+	const value = { a: { b: { c: { d: { e: { o } } } } } };
+	const expectedTypedValue = clone(value)
+
+	t.true(validator.notCalled)
+
+	const typedValue = Type(value)
+	t.is(typedValue, value)
+	t.deepEqual(typedValue, expectedTypedValue)
+
+	t.true(validator.calledOnce)
+	t.true(validator.withArgs(o).calledOnce)
+})
+
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
 
@@ -605,9 +636,44 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
-test.todo('type path modifier - from a type - validator returns true - usage with unvalid path')
-test.todo('validator returns false variant')
-test.todo('validator throws error variant')
+function typePathModifierFromATypeWithUnvalidPath(t, unvalidPath) {
+	const type = requireFromIndex('sources/type')
+
+	const validator = sinon.spy(v => true)
+
+	const BaseType = type(validator)
+
+	t.is(typeof BaseType, 'function')
+	t.is(BaseType.name, 'Type')
+
+	const unvalidPathError = t.throws(()=>{
+		BaseType.path(unvalidPath)
+	})
+
+	t.true(unvalidPathError instanceof TypeError)
+	t.is(unvalidPathError.message, [
+		logs.typeError({value: unvalidPath}),
+		`\n\t0) `, logs.typeErrorDetail({
+			validator
+		})
+	].join(''));
+}
+
+typePathModifierFromATypeWithUnvalidPath.title = (providedTitle, unvalidValue) => (
+	`type path modifier - from a type - usage with unvalid path ${stringable(unvalidValue)}`
+)
+
+test.skip(typePathModifierFromATypeWithUnvalidPath)
+test.skip(typePathModifierFromATypeWithUnvalidPath, /regex/)
+test.skip(typePathModifierFromATypeWithUnvalidPath, [])
+test.skip(typePathModifierFromATypeWithUnvalidPath, ['v', 30])
+test.skip(typePathModifierFromATypeWithUnvalidPath, {})
+test.skip(typePathModifierFromATypeWithUnvalidPath, {k: 'v'})
+test.skip(typePathModifierFromATypeWithUnvalidPath, null)
+test.skip(typePathModifierFromATypeWithUnvalidPath, function(){ return; })
+test.skip(typePathModifierFromATypeWithUnvalidPath, true)
+test.skip(typePathModifierFromATypeWithUnvalidPath, false)
+
 test.todo('from type function variant')
 test.todo('validator returns false variant')
 test.todo('validator throws error variant')
@@ -659,6 +725,8 @@ test.todo('validator throws error variant')
 
 /*---------------*/
 
+test.todo('usage with symbol as path fragment')
+test.todo('usage with a number as path fragment')
 test.todo('ensure path is not modified')
 test.todo('many types variants')
 test.todo('many validators variants')
