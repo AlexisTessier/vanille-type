@@ -118,6 +118,6 @@
   },
   "dependencies": {
     "@alexistessier/msg": "1.1.8",
-    "stringable": "0.2.2"
+    "stringable": "0.2.3"
   }
 }
