@@ -42,3 +42,4 @@ test('Not modifier', featureHasTestFileMacro, 'not-modifier');
 test('Validator and match helpers', featureHasTestFileMacro, 'validator-and-match-helpers');
 test('Type creation helpers', featureHasTestFileMacro, 'type-creation-helpers');
 test('Built in types', featureHasTestFileMacro, 'built-in-types');
+test('Type checking', featureHasTestFileMacro, 'type-checking');

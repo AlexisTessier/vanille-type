@@ -1306,14 +1306,6 @@ test('deep nested types usage in validator functions and error messages', t=>{
 	].join(''));
 });
 
-test.todo('many deep nested types and error messages');
-
-test.todo('many deep nested types usage in validator functions and error messages');
-
-test.todo('complex deep nested types with type validation on properties');
-
-test.todo('complex deep nested types with type validation on properties and error messages');
-
 /*-------------------------*/
 
 test('ensure that internal TypeError symbols and properties are not enumerable', t => {
@@ -1341,9 +1333,3 @@ test('ensure that internal Type symbols are not enumerable', t => {
 	]);
 	t.deepEqual(Object.getOwnPropertySymbols(Type), Object.getOwnPropertySymbols(function test(){return;}));
 });
-
-/*-------------------------*/
-
-test.todo('Trying to create type without parameters should throw an error');
-test.todo('Trying to create type with wrong parameters should throw an error');
-test.todo('Trying to create a type with unvalid validators arguments');

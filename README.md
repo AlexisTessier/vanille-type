@@ -40,14 +40,8 @@ paragraph content
 
 #### Table of Contents
 
--   [TypeFunction](#typefunction)
 -   [type](#type)
--   [Type](#type-1)
-
-### TypeFunction
-
-A type function take a value to check the type as input,
-returns it if the type matches but throws an error otherwise.
+-   [TypeFunction](#typefunction)
 
 ### type
 
@@ -61,7 +55,16 @@ A function providing a way to generate type validation function, usable in plain
 
 Returns **[TypeFunction](#typefunction)** A function which will check a value type, using all the validators.
 
-### Type
+### TypeFunction
+
+A type function take a value to check the type as input,
+returns it if the type matches but throws an error otherwise.
+
+**Parameters**
+
+-   `value` **any** The value to check the type.
+
+Returns **any** The value itself, unmodified if the value match the type.
 
 ## License
 
