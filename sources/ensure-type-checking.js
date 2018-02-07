@@ -1,6 +1,7 @@
 'use strict'
 
-module.exports = function ensureTypeChecking({
-	context, method, signature
-}) {
+module.exports = function makeEnsureTypeCheckingFunction() {
+	return function ensureTypeChecking(){
+		return;
+	}
 }

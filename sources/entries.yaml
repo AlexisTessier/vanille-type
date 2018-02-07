@@ -1,2 +1,5 @@
 index: sources/type
 ensure-type-checking: sources/ensure-type-checking
+path-fragment.validator: sources/validators/path-fragment
+path-fragment.valid-list: sources/validators/path-fragment.valid-list
+path-fragment.unvalid-list: sources/validators/path-fragment.unvalid-list

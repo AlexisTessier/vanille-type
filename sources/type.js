@@ -17,6 +17,9 @@ const VALIDATOR = Symbol()
 
 const types = new WeakSet()
 
+const pathFragment = require('./validators/path-fragment')
+const pathFragmentInterface = type(pathFragment)
+
 function typeErrorDetail(params) {
 	const validator = params.validator
 
@@ -193,13 +196,10 @@ function type(...validators){
 	return assignPathModifier(Type, validators)
 }
 
-const PathFragment = v => typeof v === 'string' || typeof v === 'symbol' || typeof v === 'number'
-const PathFragmentInterface = type(PathFragment)
-
 function assignPathModifier(rootType, validators, ...rootPaths){
 	return Object.assign(rootType, {
 		path: (...path) => {
-			path.forEach(PathFragmentInterface)
+			path.forEach(pathFragmentInterface)
 
 			const fullPath = [...rootPaths, ...path]
 			const withPathType = type(...validators.map(validator => {
