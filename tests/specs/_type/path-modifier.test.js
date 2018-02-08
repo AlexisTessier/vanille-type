@@ -582,7 +582,39 @@ test('type path modifier - from type function - validator returns false - usage 
 	].join(''));
 })
 
-test.todo('validator throws error variant')
+test('type path modifier - from type function - validator throws error - usage with deep path', t=>{
+	const type = requireFromIndex('sources/type')
+
+	const validator = v => {
+		throw new Error('validator error message')
+	}
+
+	const TypeWithPath = type.path('b', 'c', 'd', 'e', 'f', 'testObject')
+
+	t.is(typeof TypeWithPath, 'function')
+	t.is(TypeWithPath.name, '')
+
+	const Type = TypeWithPath(validator)
+
+	t.is(typeof Type, 'function')
+	t.is(Type.name, 'Type')
+
+	const testObject = { n: 't' }
+	const value = { b: { c: { d: { e: { f: { testObject } } } } } };
+
+	const unvalidTypeError = t.throws(()=>{
+		Type(value)
+	});
+	t.true(unvalidTypeError instanceof TypeError)
+	t.is(unvalidTypeError.message, [
+		logs.typeError({value}),
+		`\n\t0 - b.c.d.e.f.testObject) `, logs.pathTypeErrorDetail({
+			path: 'b.c.d.e.f.testObject',
+			validator,
+			errorMessage: 'validator error message'
+		})
+	].join(''));
+})
 
 /*---------------*/
 
