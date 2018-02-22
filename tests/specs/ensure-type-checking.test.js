@@ -46,7 +46,7 @@ test('Usage with custom valid value and unvalid lists map (1 type) - ensure an a
 	t.true(check)
 })
 
-test('Usage with custom valid value and unvalid lists map (1 type) - ensure an not checking function', t => {
+test('Usage with custom valid value and unvalid lists map (1 type) - ensure a not checking function', t => {
 	const type = requireFromIndex('sources/type')
 	const validator = v => v === 'valid'
 	const CustomType = type(validator)
@@ -56,24 +56,20 @@ test('Usage with custom valid value and unvalid lists map (1 type) - ensure an n
 		[CustomType, 'valid', unvalidCustomTypeValuesList]
 	)
 
-	function checkFunction(param){}
+	function checkingFunction(param){return;}
 
 	const ensureFailError = t.throws(()=>{
-		ensureTypeChecking(checkFunction, [
+		ensureTypeChecking(checkingFunction, [
 			CustomType
 		])
 	})
 
-	t.is(ensureFailError.message, [
-		`Missing type checking in ${stringable(checkFunction)}.`,
-		`It should throws a vanille type error when the argument`,
-		`at index 0 is ${stringable('unvalid')}.`,
-		`Expected type error message is:\n`,
-			logs.typeError({value: 'unvalid'}),
-			`\n\t0) `, logs.typeErrorDetail({
-				validator
-			})
-	].join(' '))
+	t.is(ensureFailError.message, logs.missingTypeChecking({
+		checkingFunction,
+		index: 0,
+		validator,
+		unvalidValue: 'unvalid'
+	}))
 })
 
 test.todo('Usage with default unvalid lists map')

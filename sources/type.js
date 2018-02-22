@@ -7,6 +7,8 @@ const {
 	pathTypeErrorDetail: PAT_TYP_ERR_DET
 } = require('./settings/logs')
 
+const typesValidatorsMap = require('./types-validators-map')
+
 const typeErrorsMetadatas = new WeakMap()
 const VALUE = Symbol()
 const FAILURES = Symbol()
@@ -191,7 +193,8 @@ function type(...validators){
 		return value;
 	}
 
-	types.add(Type);
+	types.add(Type)
+	typesValidatorsMap.set(Type, validators)
 
 	return assignPathModifier(Type, validators)
 }

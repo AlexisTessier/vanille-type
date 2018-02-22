@@ -18,9 +18,10 @@ test('Type and content', t => {
 		'unvalidTypeValidator',
 		'typeError',
 		'typeErrorDetail',
-		'pathTypeErrorDetail'
-	].sort());
-});
+		'pathTypeErrorDetail',
+		'missingTypeChecking'
+	].sort())
+})
 
 test('unvalidTypeValidator', t => {
 	const logs = requireFromIndex('sources/settings/logs');
@@ -29,26 +30,26 @@ test('unvalidTypeValidator', t => {
 	t.is(logs.unvalidTypeValidator({ validator: 'validator test', returnedValue: 'val return' }), msg(
 		`Unvalid type validator. The validator ${stringable('validator test')}`,
 		`doesn't return a boolean value. It returns ${stringable('val return')}.`
-	));
+	))
 
 	t.is(logs.unvalidTypeValidator({ validator: 2, returnedValue: 92 }), msg(
 		`Unvalid type validator. The validator ${stringable(2)}`,
 		`doesn't return a boolean value. It returns ${stringable(92)}.`
-	));
+	))
 
 	function returnedValue() {return;}
 
 	t.is(logs.unvalidTypeValidator({ validator: v => true, returnedValue }), msg(
 		`Unvalid type validator. The validator (function => validator)[v => true]`,
 		`doesn't return a boolean value. It returns ${stringable(returnedValue)}.`
-	));
+	))
 
 	t.is(logs.unvalidTypeValidator({ validator: v => {throw new Error('err')}, returnedValue: 32 }), [
 		`Unvalid type validator. The validator (function => validator)[v => {`,
 		`\n\t\t\tthrow new Error('err');`,
 		`\n\t\t}] doesn't return a boolean value. It returns ${stringable(32)}.`
-	].join(''));
-});
+	].join(''))
+})
 
 test('typeError', t => {
 	const logs = requireFromIndex('sources/settings/logs');
@@ -56,12 +57,12 @@ test('typeError', t => {
 	t.is(typeof logs.typeError, 'function');
 	t.is(logs.typeError({value: 'val1'}),
 		`Value ${stringable('val1')} is not of a valid type:`
-	);
+	)
 
 	t.is(logs.typeError({value: 'val1'}),
 		`Value ${stringable('val1')} is not of a valid type:`
-	);
-});
+	)
+})
 
 test('typeErrorDetail', t => {
 	const logs = requireFromIndex('sources/settings/logs');
@@ -103,4 +104,37 @@ test('pathTypeErrorDetail', t => {
 	t.is(logs.pathTypeErrorDetail({path: 'age.number', validator: v => true, errorMessage: 'other message'}),
 		`age.number value doesn't match the validator (function => validator)[v => true] - other message`
 	);
+});
+
+test('missingTypeChecking', t => {
+	const logs = requireFromIndex('sources/settings/logs');
+
+	t.is(typeof logs.missingTypeChecking, 'function');
+	t.is(logs.missingTypeChecking({
+		checkingFunction: 'check',
+		index: 2,
+		validator: 'validator',
+		unvalidValue: 32
+	}), [
+		`Missing type checking in (string => 'check').`,
+		`It should throws a vanille type error when the`,
+		`argument at index 2 is (number: integer => 32).`,
+		`Expected type error message is:\n`,
+		`Value (number: integer => 32) is not of a valid type:`,
+		`\n\t0)  It doesn't match the validator (string => 'validator').`
+	].join(' '));
+
+	t.is(logs.missingTypeChecking({
+		checkingFunction: '42',
+		index: 0,
+		validator: 'test',
+		unvalidValue: 12
+	}), [
+		`Missing type checking in (string => '42').`,
+		`It should throws a vanille type error when the`,
+		`argument at index 0 is (number: integer => 12).`,
+		`Expected type error message is:\n`,
+		`Value (number: integer => 12) is not of a valid type:`,
+		`\n\t0)  It doesn't match the validator (string => 'test').`
+	].join(' '));
 });
