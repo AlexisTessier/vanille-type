@@ -39,9 +39,9 @@ test('Usage with custom valid value and unvalid lists map (1 type) - ensure an a
 		CustomType(param)
 	}
 
-	const check = ensureTypeChecking(checkFunction, [
+	const check = ensureTypeChecking(checkFunction,
 		CustomType
-	])
+	)
 
 	t.true(check)
 })
@@ -59,9 +59,9 @@ test('Usage with custom valid value and unvalid lists map (1 type) - ensure a no
 	function checkingFunction(param){return;}
 
 	const ensureFailError = t.throws(()=>{
-		ensureTypeChecking(checkingFunction, [
+		ensureTypeChecking(checkingFunction,
 			CustomType
-		])
+		)
 	})
 
 	t.is(ensureFailError.message, logs.missingTypeChecking({
@@ -72,5 +72,12 @@ test('Usage with custom valid value and unvalid lists map (1 type) - ensure a no
 	}))
 })
 
+test.todo('Usage with valid multiple arguments function signature')
+test.todo('Usage with unvalid multiple arguments function signature')
+test.todo('Usage with many types in the unvalid lists - checking function')
+test.todo('Usage with many types in the unvalid lists - not checking function')
+test.todo('Usage with deep validator')
+test.todo('Usage with multiple validators type')
+test.todo('Usage with multiple deep validators type')
 test.todo('Usage with default unvalid lists map')
 test.todo('Usage with mixed custom and default unvalid lists map')

@@ -15,7 +15,7 @@ module.exports = function makeEnsureTypeCheckingFunction(...typeValidUnvalidsMat
 		unvalidsListMap.set(type, unvalidsList)
 	})
 
-	return function ensureTypeChecking(checkingFunction, signature){
+	return function ensureTypeChecking(checkingFunction, ...signature){
 		signature.forEach((testedArgumentType, i) => {
 			unvalidsListMap.get(testedArgumentType).forEach(unvalidValue => {
 				const checkingArguments = signature.map((argumentsType, j) => (
