@@ -1,3 +1,7 @@
+# ⚠️ Deprecated
+
+Just use typescript https://www.typescriptlang.org/
+
 # Vanille Type
 
 ![draft](https://img.shields.io/badge/stability-draft-lightgrey.svg?style=flat-square)
